@@ -1,7 +1,7 @@
 % WATERSHED_CELLS_GUI finds cells in an image using watershed segmentation
 %
 % Version: 1.0
-% Date: October 28, 2016
+% Date created: October 26, 2016
 % Programmed by: Lena Bartell (lrb89@cornell.edu)
 % Principle Investigator: Prof. Itai Cohen, Cornell University
 %
@@ -67,7 +67,7 @@ function varargout = watershed_cells_gui(varargin)
 
 % Edit the above text to modify the response to help watershed_cells_gui
 
-% Last Modified by GUIDE v2.5 28-Oct-2016 11:31:27
+% Last Modified by GUIDE v2.5 06-Nov-2016 20:18:36
 
 %% ========== Begin initialization code - DO NOT EDIT ================== %%
 gui_Singleton = 1;
@@ -182,8 +182,10 @@ if exist(params.path_to_image, 'file')
 
     % Update handles structure
     guidata(hObject, handles);
+    
 else
     % show user we are done computing stuff
+    warning('Image not found')
     handles.computing.Visible = 'off';
     drawnow
 
@@ -263,6 +265,41 @@ end
 % bring up a dialog box to save the data
 uisave('data','output.mat')
 
+function browsebutton_Callback(hObject, eventdata, handles)
+% --- Executes on button press in browsebutton.
+% hObject    handle to browsebutton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% get existing parameters, if any
+if isfield(handles, 'params')
+    params = handles.params;
+else
+    params = struct();
+end
+
+% get the file path
+[filename, pathname] = uigetfile({'*.tiff';'*.tif'}, 'select image to analyze');
+if filename
+    params.path_to_image = [pathname filename];
+    handles.pathtoimage.String = params.path_to_image;
+end
+
+% read image from file and store it in handles
+if exist(params.path_to_image, 'file')    
+    handles.raw_image = imread(params.path_to_image);
+else
+    warning('Image not found')
+end
+
+% store parameters in handles
+handles.params = params;
+
+% Update handles structure
+guidata(hObject, handles);
+
+% Show the image
+updatedisplaybutton_Callback(hObject, eventdata, handles)
 
 %% ===================== Unaltered functions =========================== %%
 function watershed_cells_gui_OpeningFcn(hObject, eventdata, handles, varargin)
