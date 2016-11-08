@@ -1,6 +1,5 @@
 % WATERSHED_CELLS_GUI finds cells in an image using watershed segmentation
 %
-% Version: 1.0
 % Date created: October 26, 2016
 % Programmed by: Lena Bartell (lrb89@cornell.edu)
 % Principle Investigator: Prof. Itai Cohen, Cornell University
@@ -89,219 +88,6 @@ end
 %% =========== End initialization code - DO NOT EDIT ABOVE ============= %%
 
 %% ===================== Customized functions ========================== %%
-
-function findcellsbutton_Callback(hObject, eventdata, handles)
-% --- Executes on button press in findcellsbutton.
-% hObject    handle to findcellsbutton (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% show user we are working on stuff
-handles.computing.Visible = 'on';
-drawnow
-
-% If the analysis step is un-checked (i.e. to be skipped), set the
-% parameter to 0 (i.e. false, off). Otherwise, grab the number from the
-% text box and check/fix it as appropriate
-if handles.run_equalization.Value
-    num = str2double(handles.sz_equalization.String);
-    params.equalization = abs(num); % positive
-else
-    params.equalization = 0;
-end
-if handles.run_background.Value
-    num = str2double(handles.sz_background.String);
-    params.background = floor(abs(num)/2)*2+1; % positive odd integer
-else
-    params.background = 0;
-end
-if handles.run_median.Value
-    num = str2double(handles.sz_median.String);
-    params.median = floor(abs(num)/2)*2+1; % positive odd integer
-else
-    params.median = 0;
-end
-if handles.run_gaussian.Value
-    num = str2double(handles.sz_gaussian.String);
-    params.gaussian = abs(num); % positive
-else
-    params.gaussian = 0;
-end
-if handles.run_minarea.Value
-    num = str2double(handles.sz_minarea.String);
-    params.minarea = round(abs(num)); % positive integer
-else
-    params.minarea = 0;
-end
-if handles.run_maxarea.Value
-    num = str2double(handles.sz_maxarea.String);
-    params.maxarea = round(abs(num)); % positive integer
-else
-    params.maxarea = 0;
-end
-if handles.run_minsignal.Value
-    num = str2double(handles.sz_minsignal.String);
-    params.minsignal = abs(num); % positive 
-else
-    params.minsignal = 0;
-end
-
-% get input image file. if it can't be found, open a dialog box so the user
-% can find it
-params.path_to_image = handles.pathtoimage.String;
-if ~exist(params.path_to_image, 'file')
-    [filename, pathname] = uigetfile({'*.tiff';'*.tif'}, 'select image to analyze');
-    if filename
-        params.path_to_image = [pathname filename];
-        handles.pathtoimage.String = params.path_to_image;
-        % Update handles structure
-        guidata(hObject, handles);
-    end
-end
-
-if exist(params.path_to_image, 'file')
-    % store parameters in handles
-    handles.params = params;
-    
-    % read image from file and store it in handles
-    handles.raw_image = imread(params.path_to_image);
-    
-    % run function to find cells using the provided parameters and store
-    % results in handles
-    [label_matrix, CC, edge_image] = find_cells(handles.raw_image, handles.params);
-    handles.cells.label_matrix = label_matrix;
-    handles.cells.CC = CC;
-    handles.edge_image = edge_image;
-
-    % automatically call the updatedisplay button
-    updatedisplaybutton_Callback(hObject, eventdata, handles);
-    
-    % show user we are done computing stuff
-    handles.computing.Visible = 'off';
-    drawnow
-
-    % Update handles structure
-    guidata(hObject, handles);
-    
-else
-    % show user we are done computing stuff
-    warning('Image not found')
-    handles.computing.Visible = 'off';
-    drawnow
-
-end
-
-function updatedisplaybutton_Callback(hObject, eventdata, handles)
-% --- Executes on button press in updatedisplaybutton.
-% hObject    handle to updatedisplaybutton (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% show user we are working on stuff
-handles.computing.Visible = 'on';
-drawnow
-
-% show raw image
-cla(handles.result_axes)
-if isfield(handles, 'raw_image')
-    % show image
-    imshow(handles.raw_image, 'parent', handles.result_axes)
-    
-    % update axes appearance
-    handles.result_axes.XTick = [];
-    handles.result_axes.YTick = [];
-    handles.result_axes.XLim = [0 size(handles.raw_image,2)]+0.5;
-    handles.result_axes.YLim = [0 size(handles.raw_image,1)]+0.5;
-end
-
-% show cell outlines
-handles.result_axes.NextPlot = 'add';
-if isfield(handles, 'edge_image')
-    % deal with different image classes 
-    edgeim = handles.edge_image;
-    switch class(handles.raw_image)
-        case 'uint8'
-            edgeim = uint8(edgeim*2^8);
-        case 'double'
-            edgeim = double(edgeim);
-        otherwise
-            edgeim = double(edgeim);
-    end
-    
-    % show the cell outlines
-    hedge = imshow(edgeim, 'parent', handles.result_axes);
-    edgealpha = abs(str2double(handles.sz_edgealpha.String));
-    hedge.AlphaData = handles.edge_image * edgealpha;
-    
-    % display the number of cells found
-    handles.numcells.String = sprintf('Number of cells: %d', handles.cells.CC.NumObjects);
-end
-
-% Update handles structure
-guidata(hObject, handles);
-
-% show user we are working on stuff
-handles.computing.Visible = 'off';
-drawnow
-
-function savedata_Callback(hObject, eventdata, handles)
-% --- Executes on button press in savedata.
-% hObject    handle to savedata (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% gather data to be saved
-data = struct();
-if isfield(handles, 'raw_image')
-    data.raw_image = handles.raw_image;
-end
-if isfield(handles, 'params')
-    data.params = handles.params;
-end
-if isfield(handles, 'cells')
-    data.cells = handles.cells;
-end
-
-% bring up a dialog box to save the data
-uisave('data','output.mat')
-
-function browsebutton_Callback(hObject, eventdata, handles)
-% --- Executes on button press in browsebutton.
-% hObject    handle to browsebutton (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% get existing parameters, if any
-if isfield(handles, 'params')
-    params = handles.params;
-else
-    params = struct();
-end
-
-% get the file path
-[filename, pathname] = uigetfile({'*.tiff';'*.tif'}, 'select image to analyze');
-if filename
-    params.path_to_image = [pathname filename];
-    handles.pathtoimage.String = params.path_to_image;
-end
-
-% read image from file and store it in handles
-if exist(params.path_to_image, 'file')    
-    handles.raw_image = imread(params.path_to_image);
-else
-    warning('Image not found')
-end
-
-% store parameters in handles
-handles.params = params;
-
-% Update handles structure
-guidata(hObject, handles);
-
-% Show the image
-updatedisplaybutton_Callback(hObject, eventdata, handles)
-
-%% ===================== Unaltered functions =========================== %%
 function watershed_cells_gui_OpeningFcn(hObject, eventdata, handles, varargin)
 % --- Executes just before watershed_cells_gui is made visible.
 % This function has no output args, see OutputFcn.
@@ -315,8 +101,293 @@ function watershed_cells_gui_OpeningFcn(hObject, eventdata, handles, varargin)
 % Choose default command line output for watershed_cells_gui
 handles.output = hObject;
 
+% setup default params structure
+handles.UserData.params.values = struct(...
+    'path_to_image', '',...
+    'equalization_cliplim', 0.01,...
+    'background_size', 19,...
+    'median_size', 7,...
+    'gaussian_sigma', 7,...
+    'minimum_area', 35,...
+    'maximum_area', 1000,...
+    'minimum_signal', 0.2,...
+    'edge_alpha', 0.5);
+handles.UserData.params.on = struct(...
+    'path_to_image', [],...
+    'equalization_cliplim', true,...
+    'background_size', true,...
+    'median_size', true,...
+    'gaussian_sigma', true,...
+    'minimum_area', true,...
+    'maximum_area', true,...
+    'minimum_signal', true);
+handles.UserData.results = struct(...
+    'num_regions', [],...
+    'raw_image', [],...
+    'label_matrix', [],...
+    'edge_image', []);
+
+% populate GUI with default values
+handles = update_params_display(handles);
+
+% update axes display
+handles = initialize_display(handles);
+
 % Update handles structure
 guidata(hObject, handles);
+
+function handles = initialize_display(handles)
+% initialize the axes image data
+
+handles.result_axes.NextPlot = 'add';
+
+% raw image handles
+handles.UserData.h_rawim = imshow(handles.UserData.results.raw_image, 'parent', handles.result_axes);
+handles.UserData.h_rawim.Tag = 'raw';
+
+% region outlines image
+handles.UserData.h_edges = imshow(handles.UserData.results.edge_image, 'parent', handles.result_axes);
+handles.UserData.h_edges.Tag = 'edges';
+
+function handles = update_params_display(handles)
+% display parameter values in the gui
+
+params = handles.UserData.params.values;
+keep = handles.UserData.params.on;
+results = handles.UserData.results;
+
+% parameter string values
+handles.pathtoimage.String = params.path_to_image;
+handles.sz_equalization.String = num2str(params.equalization_cliplim);
+handles.sz_background.String = num2str(params.background_size);
+handles.sz_median.String = num2str(params.median_size);
+handles.sz_gaussian.String = num2str(params.gaussian_sigma);
+handles.sz_minarea.String = num2str(params.minimum_area);
+handles.sz_maxarea.String = num2str(params.maximum_area);
+handles.sz_minsignal.String = num2str(params.minimum_signal);
+handles.sz_edgealpha.String = num2str(params.edge_alpha);
+
+% parameters on/off values
+handles.run_equalization.Value = keep.equalization_cliplim;
+handles.run_background.Value = keep.background_size;
+handles.run_median.Value = keep.median_size;
+handles.run_gaussian.Value = keep.gaussian_sigma;
+handles.run_minarea.Value = keep.minimum_area;
+handles.run_maxarea.Value = keep.maximum_area;
+handles.run_minsignal.Value = keep.minimum_signal;
+
+% number of regions
+handles.numcells.String = sprintf('Number of regions: %d', results.num_regions);
+
+function handles = get_params(handles)
+% get parameter values from the gui
+
+% parameter string values
+handles.UserData.params.values.path_to_image = handles.pathtoimage.String;
+handles.UserData.params.values.equalization_cliplim = str2double(handles.sz_equalization.String);
+handles.UserData.params.values.background_size = str2double(handles.sz_background.String);
+handles.UserData.params.values.median_size = str2double(handles.sz_median.String);
+handles.UserData.params.values.gaussian_sigma = str2double(handles.sz_gaussian.String);
+handles.UserData.params.values.minimum_area = str2double(handles.sz_minarea.String);
+handles.UserData.params.values.maximum_area = str2double(handles.sz_maxarea.String);
+handles.UserData.params.values.edge_alpha = str2double(handles.sz_edgealpha.String);
+
+% parameter on/off values
+handles.UserData.params.on.equalization_cliplim = handles.run_equalization.Value;
+handles.UserData.params.on.background_size = handles.run_background.Value;
+handles.UserData.params.on.median_size = handles.run_median.Value;
+handles.UserData.params.on.gaussian_size = handles.run_gaussian.Value;
+handles.UserData.params.on.minimum_area = handles.run_minarea.Value;
+handles.UserData.params.on.maximum_area = handles.run_maxarea.Value;
+handles.UserData.params.on.minimum_signal = handles.run_minsignal.Value;
+
+% check/fix parameter values
+params = handles.UserData.params.values;
+params.equalization_cliplim = min(1, abs(params.equalization_cliplim)); % positive <= 1
+params.background_size = floor(abs(params.background_size)/2)*2+1; % positive odd integer
+params.median_size = floor(abs(params.median_size)/2)*2+1; % positive odd integer
+params.gaussian_sigma = abs(params.gaussian_sigma); % positive
+params.minimum_area = round(abs(params.minimum_area)); % positive integer
+params.maximum_area = round(abs(params.maximum_area)); % positive integer
+params.minimum_signal = min(1, abs(params.minimum_signal)); % positive <= 1
+params.edge_alpha = min(1, abs(params.edge_alpha)); % positive <= 1
+handles.UserData.params.values = params;
+
+% update display with fixed values
+handles = update_params_display(handles);
+
+function browsebutton_Callback(hObject, eventdata, handles)
+% --- Executes on button press in browsebutton.
+% hObject    handle to browsebutton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% get the file path
+[filename, pathname] = uigetfile({'*.tif;*.tiff'}, 'select image to analyze');
+if filename
+    handles.UserData.params.values.path_to_image = [pathname filename];
+
+    % update parameter display
+    handles = update_params_display(handles);
+
+    % import image
+    handles = import_image(handles);
+
+    % Update handles structure
+    guidata(hObject, handles);
+
+    % Show the image
+    updatedisplaybutton_Callback(hObject, eventdata, handles)
+end
+
+function handles = import_image(handles)
+% import image from the path
+
+if exist(handles.UserData.params.values.path_to_image, 'file')    
+    handles.UserData.results.raw_image = imread(handles.UserData.params.values.path_to_image);
+else
+    warning('Image not found')
+end
+
+function findcellsbutton_Callback(hObject, eventdata, handles)
+% --- Executes on button press in findcellsbutton.
+% hObject    handle to findcellsbutton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% show user we are working on stuff
+handles.computing.Visible = 'on';
+drawnow
+
+% get current parameters
+handles = get_params(handles);
+params = handles.UserData.params.values;
+params_on = handles.UserData.params.on;
+
+% read in the image
+handles = import_image(handles);
+
+% if we have an image, run the analysis to find cells and store result
+if ~isempty(handles.UserData.results.raw_image)
+    [label_matrix, edge_image] = find_cells(...
+        handles.UserData.results.raw_image, params, params_on);
+    handles.UserData.results.label_matrix = label_matrix;
+    handles.UserData.results.edge_image = edge_image;
+    handles.UserData.results.num_regions = max(label_matrix(:));
+end
+
+% automatically call the updatedisplay button
+updatedisplaybutton_Callback(hObject, eventdata, handles);
+
+% show user we are done computing stuff
+handles.computing.Visible = 'off';
+drawnow
+
+% Update handles structure
+guidata(hObject, handles);
+
+function updatedisplaybutton_Callback(hObject, eventdata, handles)
+% --- Executes on button press in updatedisplaybutton.
+% hObject    handle to updatedisplaybutton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% show user we are working on stuff
+handles.computing.Visible = 'on';
+drawnow
+
+% update parameters
+handles = get_params(handles);
+
+% show raw image
+if ~isempty(handles.UserData.results.raw_image) && ...
+        ~isequal(handles.UserData.h_rawim.CData, handles.UserData.results.raw_image)
+    handles.UserData.h_rawim.CData = handles.UserData.results.raw_image;
+    handles.result_axes.XTick = [];
+    handles.result_axes.YTick = [];
+    handles.result_axes.XLim = [0 size(handles.UserData.results.raw_image, 2)]+0.5;
+    handles.result_axes.YLim = [0 size(handles.UserData.results.raw_image, 1)]+0.5;
+end
+
+% show edge image
+if ~isempty(handles.UserData.results.edge_image)
+    
+    % deal with different image classes 
+    edgeim = handles.UserData.results.edge_image;
+    switch class(handles.UserData.results.raw_image)
+        case 'uint8'
+            edgeim = uint8(edgeim*2^8);
+        case 'double'
+            edgeim = double(edgeim);
+        otherwise
+            edgeim = double(edgeim);
+    end
+    handles.UserData.h_edges.CData = edgeim;
+    
+    % set alpha
+    handles.UserData.h_edges.AlphaData = ...
+        handles.UserData.results.edge_image * ...
+        handles.UserData.params.values.edge_alpha;
+    
+end
+
+% show user we are working on stuff
+handles.computing.Visible = 'off';
+drawnow
+
+% Update handles structure
+guidata(hObject, handles);
+
+function savedata_Callback(hObject, eventdata, handles)
+% --- Executes on button press in savedata.
+% hObject    handle to savedata (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% bring up a dialog box to pick the save name/location
+[FileName,PathName] = uiputfile('*.*', 'Basename to save results', 'output');
+if FileName
+    basename = regexp(FileName, '\.\S\S\S$', 'split');
+    basename = basename{1};
+
+    % save parameters as matlab files
+    params = handles.UserData.params;
+    save([PathName basename '_params.mat'], 'params', '-mat');
+
+    % print parameters to text file
+    params = handles.UserData.params.values;
+    params_on = handles.UserData.params.on;
+    keys = fieldnames(params);
+    f = fopen([PathName basename '_params.txt'], 'wt+');
+    fprintf(f, 'NAME\tVALUE\tON\n');
+    for ii = 1:length(keys)
+        value = params.(keys{ii});
+        try
+            on = params_on.(keys{ii});
+        catch
+            on = 1;
+        end
+        if isnumeric(value)
+            fprintf(f, '%s\t%f\t%d\n', keys{ii}, value, on);
+        elseif ischar(value)
+            fprintf(f, '%s\t%s\t%d\n', keys{ii}, value, on);
+        end
+    end
+    fprintf(f, '%s\t%d\t\n', 'num_regions', handles.UserData.results.num_regions);
+    fclose(f);
+
+    % save label matrix 
+    label_matrix = handles.UserData.results.label_matrix;
+    if ~isempty(label_matrix) && ~isempty(handles.UserData.results.num_regions)
+        % matlab file
+        save([PathName basename '_labelmatrix.mat'], 'label_matrix', '-mat');
+
+        % tiff image
+        imwrite(label_matrix, gray(handles.UserData.results.num_regions), [PathName basename '_labelmatrix.tif'], 'tif');
+    end
+end
+
+%% ===================== Unaltered functions =========================== %%
 
 function varargout = watershed_cells_gui_OutputFcn(hObject, eventdata, handles) 
 % --- Outputs from this function are returned to the command line.

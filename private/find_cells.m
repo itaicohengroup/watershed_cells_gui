@@ -1,9 +1,8 @@
-function [label_matrix, CC, edge_image] = find_cells(im0, params)
+function [label_matrix, edge_image] = find_cells(im0, params, params_on)
 % Implement image pre-processing, marker-controlled watershed segmentation,
 % and post-processing on image im0 based on parameters params.
-% Segementation results are return as a label matrix in label_matrix and
-% also as a connected components structure in CC. Edge_image is a binary
-% image highlighting the edges of cells.  
+% Segementation results are return as a label matrix in label_matrix.
+% Edge_image is a binary image highlighting the edges of cells.  
 %
 % Image analysis process
 %   1. Pre-processing
@@ -42,26 +41,26 @@ switch size(im0,3)
 end
 
 % adaptive histogram equalization
-if params.equalization
-    img = adapthisteq(img, 'cliplimit', params.equalization);
+if params_on.equalization_cliplim
+    img = adapthisteq(img, 'cliplimit', params.equalization_cliplim);
 end
 
 % background subtraction
-if params.background
-    im_bg = medfilt2(img, [1 1]*params.background);
+if params_on.background_size
+    im_bg = medfilt2(img, [1 1]*params.background_size);
     img = imsubtract(img, im_bg);
 end
 
 % median filter
-if params.median
-    img = medfilt2(img, [1 1]*params.median);
+if params_on.median_size
+    img = medfilt2(img, [1 1]*params.median_size);
 end
 
 % gaussian filter
-if params.gaussian
+if params_on.gaussian_sigma
     
     img = imfilter(img, ...
-        fspecial('gaussian', round(params.gaussian*3), params.gaussian));
+        fspecial('gaussian', round(params.gaussian_sigma*3), params.gaussian_sigma));
 end
 
 % re-expand intensity range
@@ -72,8 +71,8 @@ thresh = multithresh(img, 2);
 bg = img < thresh(1);
 
 % remove areas from the foreground that are too small
-if params.minarea
-    bg = ~bwareaopen(~bg, params.minarea);
+if params_on.minimum_area
+    bg = ~bwareaopen(~bg, params.minimum_area);
 end
 
 % watershed segmentation to find cells
@@ -84,28 +83,26 @@ stats = regionprops(L, img, {'Area','MeanIntensity'});
 areas = cat(1, stats.Area);
 signals = cat(1, stats.MeanIntensity);
 keep = true(size(areas));
-if params.minarea
-    keep = keep & (areas >= params.minarea);
+if params_on.minimum_area
+    keep = keep & (areas >= params.minimum_area);
 end
-if params.maxarea
-    keep = keep & (areas <= params.maxarea);
+if params_on.maximum_area
+    keep = keep & (areas <= params.maximum_area);
 end
-if params.minsignal
-    keep = keep & (signals >= params.minsignal);
+if params_on.minimum_signal
+    keep = keep & (signals >= params.minimum_signal);
 end
 
 % renumber label matrix
-newix = zeros(1, max(L(:)));
+newix = zeros([1 max(L(:))], 'like', L);
 newix(keep) = 1:sum(keep);
 newix(~keep) = 0;
 newix = [0 newix];
 newL = newix(L+1);
 
 % create an image showing the cells outlined
-CC = bwconncomp(newL>0);
 edgeim = bwperim(newL>0);
 
 % put segmentation result into a struct 
 label_matrix = newL;
-CC = CC;
 edge_image = edgeim;

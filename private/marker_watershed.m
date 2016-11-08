@@ -45,7 +45,7 @@ wsim(fg) = -1;
 L0 = watershed(wsim);
 
 % convert to signed integer format & initialize output
-[L0, L] = deal(int16(L0));
+[L0, L] = deal(L0);
 
 % enforce all regions with any background pixels to be labeled 0
 bgix = unique(L0(bg));
@@ -56,7 +56,7 @@ end
 % renumber label matrix to enforce all regions with any background pixels
 % to be labeled 0 and to renumber foreground labels with unique
 % consecutive positive integers (preserving boundaries labeled as 0)
-newix = zeros(1, max(L0(:)));
+newix = zeros([1 max(L0(:))], 'like', L);
 
 allix = unique(L0);
 bgix = unique(L0(bg));
