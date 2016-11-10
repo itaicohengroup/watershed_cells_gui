@@ -6,7 +6,6 @@ function [label_matrix, edge_image] = find_cells(im0, params, params_on)
 %
 % Image analysis process
 %   1. Pre-processing
-%       > Import image (from "Path to image:")
 %       > Adaptive histogram equalization (using "Equalization clip limit")
 %       > Background subtraction using a median filter (using "background size")
 %       > Median filter to smooth (using "Median size")

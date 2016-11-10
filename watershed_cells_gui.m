@@ -66,7 +66,7 @@ function varargout = watershed_cells_gui(varargin)
 
 % Edit the above text to modify the response to help watershed_cells_gui
 
-% Last Modified by GUIDE v2.5 06-Nov-2016 20:18:36
+% Last Modified by GUIDE v2.5 10-Nov-2016 09:49:03
 
 %% ========== Begin initialization code - DO NOT EDIT ================== %%
 gui_Singleton = 1;
@@ -123,9 +123,14 @@ handles.UserData.params.on = struct(...
     'minimum_signal', true);
 handles.UserData.results = struct(...
     'num_regions', [],...
+    'num_state1', [],...
+    'num_state2', [],...
     'raw_image', [],...
+    'gray_image', [], ...
     'label_matrix', [],...
-    'edge_image', []);
+    'edge_image', [],...
+    'state1_image', [], ...
+    'state2_image', []);
 
 % populate GUI with default values
 handles = update_params_display(handles);
@@ -139,15 +144,27 @@ guidata(hObject, handles);
 function handles = initialize_display(handles)
 % initialize the axes image data
 
-handles.result_axes.NextPlot = 'add';
+handles.segmentation_axes.NextPlot = 'add';
+handles.classify_axes.NextPlot = 'add';
+linkaxes([handles.segmentation_axes handles.classify_axes]);
 
-% raw image handles
-handles.UserData.h_rawim = imshow(handles.UserData.results.raw_image, 'parent', handles.result_axes);
-handles.UserData.h_rawim.Tag = 'raw';
+% grayscale image handles
+handles.UserData.h_grayim = imshow(handles.UserData.results.gray_image, 'parent', handles.segmentation_axes);
+handles.UserData.h_grayim.Tag = 'gray';
 
 % region outlines image
-handles.UserData.h_edges = imshow(handles.UserData.results.edge_image, 'parent', handles.result_axes);
+handles.UserData.h_edges = imshow(handles.UserData.results.edge_image, 'parent', handles.segmentation_axes);
 handles.UserData.h_edges.Tag = 'edges';
+
+% raw image handles
+handles.UserData.h_rawim = imshow(handles.UserData.results.raw_image, 'parent', handles.classify_axes);
+handles.UserData.h_rawim.Tag = 'raw';
+
+% region outlines by state image
+handles.UserData.h_state1 = imshow(handles.UserData.results.state1_image, 'parent', handles.classify_axes);
+handles.UserData.h_state1.Tag = 'state1';
+handles.UserData.h_state2 = imshow(handles.UserData.results.state2_image, 'parent', handles.classify_axes);
+handles.UserData.h_state2.Tag = 'state2';
 
 function handles = update_params_display(handles)
 % display parameter values in the gui
@@ -177,7 +194,7 @@ handles.run_maxarea.Value = keep.maximum_area;
 handles.run_minsignal.Value = keep.minimum_signal;
 
 % number of regions
-handles.numcells.String = sprintf('Number of regions: %d', results.num_regions);
+handles.numregions.String = sprintf('Number of regions: %d', results.num_regions);
 
 function handles = get_params(handles)
 % get parameter values from the gui
@@ -241,10 +258,19 @@ if filename
 end
 
 function handles = import_image(handles)
-% import image from the path
+% import image from the path and store grayscale image
 
 if exist(handles.UserData.params.values.path_to_image, 'file')    
+    % raw image
     handles.UserData.results.raw_image = imread(handles.UserData.params.values.path_to_image);
+    
+    % grayscale image
+    if size(handles.UserData.results.raw_image, 3) > 1 
+        handles.UserData.results.gray_image = mat2gray(rgb2gray(handles.UserData.results.raw_image));
+    else
+        handles.UserData.results.gray_image = mat2gray(handles.UserData.results.raw_image);
+    end
+    
 else
     warning('Image not found')
 end
@@ -268,9 +294,9 @@ params_on = handles.UserData.params.on;
 handles = import_image(handles);
 
 % if we have an image, run the analysis to find cells and store result
-if ~isempty(handles.UserData.results.raw_image)
+if ~isempty(handles.UserData.results.gray_image)
     [label_matrix, edge_image] = find_cells(...
-        handles.UserData.results.raw_image, params, params_on);
+        handles.UserData.results.gray_image, params, params_on);
     handles.UserData.results.label_matrix = label_matrix;
     handles.UserData.results.edge_image = edge_image;
     handles.UserData.results.num_regions = max(label_matrix(:));
@@ -299,14 +325,14 @@ drawnow
 % update parameters
 handles = get_params(handles);
 
-% show raw image
-if ~isempty(handles.UserData.results.raw_image) && ...
-        ~isequal(handles.UserData.h_rawim.CData, handles.UserData.results.raw_image)
-    handles.UserData.h_rawim.CData = handles.UserData.results.raw_image;
-    handles.result_axes.XTick = [];
-    handles.result_axes.YTick = [];
-    handles.result_axes.XLim = [0 size(handles.UserData.results.raw_image, 2)]+0.5;
-    handles.result_axes.YLim = [0 size(handles.UserData.results.raw_image, 1)]+0.5;
+% show grayscale image
+if ~isempty(handles.UserData.results.gray_image) && ...
+        ~isequal(handles.UserData.h_grayim.CData, handles.UserData.results.gray_image)
+    handles.UserData.h_grayim.CData = handles.UserData.results.gray_image;
+    handles.segmentation_axes.XTick = [];
+    handles.segmentation_axes.YTick = [];
+    handles.segmentation_axes.XLim = [0 size(handles.UserData.results.gray_image, 2)]+0.5;
+    handles.segmentation_axes.YLim = [0 size(handles.UserData.results.gray_image, 1)]+0.5;
 end
 
 % show edge image
@@ -314,7 +340,7 @@ if ~isempty(handles.UserData.results.edge_image)
     
     % deal with different image classes 
     edgeim = handles.UserData.results.edge_image;
-    switch class(handles.UserData.results.raw_image)
+    switch class(handles.UserData.results.gray_image)
         case 'uint8'
             edgeim = uint8(edgeim*2^8);
         case 'double'
@@ -331,6 +357,61 @@ if ~isempty(handles.UserData.results.edge_image)
     
 end
 
+
+% show raw image in classify_axes
+if ~isempty(handles.UserData.results.raw_image) && ...
+        ~isequal(handles.UserData.h_rawim.CData, handles.UserData.results.raw_image)
+    handles.UserData.h_rawim.CData = handles.UserData.results.raw_image;
+    handles.classify_axes.XTick = [];
+    handles.classify_axes.YTick = [];
+    handles.classify_axes.XLim = [0 size(handles.UserData.results.raw_image, 2)]+0.5;
+    handles.classify_axes.YLim = [0 size(handles.UserData.results.raw_image, 1)]+0.5;
+end
+
+% show state1 image in classify_axes
+if ~isempty(handles.UserData.results.state1_image)
+    
+    % deal with different image classes 
+    edgeim = handles.UserData.results.state1_image;
+    switch class(handles.UserData.results.raw_image)
+        case 'uint8'
+            edgeim = uint8(edgeim*2^8);
+        case 'double'
+            edgeim = double(edgeim);
+        otherwise
+            edgeim = double(edgeim);
+    end
+    handles.UserData.h_state1.CData = cat(3, edgeim, edgeim, edgim*0);
+    
+    % set alpha
+    handles.UserData.h_state1.AlphaData = ...
+        handles.UserData.results.state1_image * ...
+        handles.UserData.params.values.edge_alpha;
+    
+end
+
+% show state2 image in classify_axes
+if ~isempty(handles.UserData.results.state2_image)
+    
+    % deal with different image classes 
+    edgeim = handles.UserData.results.state2_image;
+    switch class(handles.UserData.results.raw_image)
+        case 'uint8'
+            edgeim = uint8(edgeim*2^8);
+        case 'double'
+            edgeim = double(edgeim);
+        otherwise
+            edgeim = double(edgeim);
+    end
+    handles.UserData.h_state2.CData = cat(3, edgeim, edgeim, edgim*0);
+    
+    % set alpha
+    handles.UserData.h_state2.AlphaData = ...
+        handles.UserData.results.state2_image * ...
+        handles.UserData.params.values.edge_alpha;
+    
+end
+
 % show user we are working on stuff
 handles.computing.Visible = 'off';
 drawnow
@@ -338,9 +419,9 @@ drawnow
 % Update handles structure
 guidata(hObject, handles);
 
-function savedata_Callback(hObject, eventdata, handles)
-% --- Executes on button press in savedata.
-% hObject    handle to savedata (see GCBO)
+function savedatabutton_Callback(hObject, eventdata, handles)
+% --- Executes on button press in savedatabutton.
+% hObject    handle to savedatabutton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -509,6 +590,31 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
+function classifyeq_CreateFcn(hObject, eventdata, handles)
+% --- Executes during object creation, after setting all properties.
+% hObject    handle to classifyeq (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+function threshold_CreateFcn(hObject, eventdata, handles)
+% --- Executes during object creation, after setting all properties.
+% hObject    handle to threshold (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
 %% --------------------- Callback
 
 function run_background_Callback(hObject, eventdata, handles)
@@ -637,6 +743,26 @@ function sz_edgealpha_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of sz_edgealpha as text
 %        str2double(get(hObject,'String')) returns contents of sz_edgealpha as a double
 
+function classifyeq_Callback(hObject, eventdata, handles)
+% hObject    handle to classifyeq (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% Hints: get(hObject,'String') returns contents of classifyeq as text
+%        str2double(get(hObject,'String')) returns contents of classifyeq as a double
+
+function threshold_Callback(hObject, eventdata, handles)
+% hObject    handle to threshold (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% Hints: get(hObject,'String') returns contents of threshold as text
+%        str2double(get(hObject,'String')) returns contents of threshold as a double
+
+function classifybutton_Callback(hObject, eventdata, handles)
+% --- Executes on button press in classifybutton.
+% hObject    handle to classifybutton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
 %% --------------------- ButtonDownFcn
 
 function findcellsbutton_ButtonDownFcn(hObject, eventdata, handles)
@@ -652,3 +778,12 @@ function updatedisplaybutton_ButtonDownFcn(hObject, eventdata, handles)
 % hObject    handle to updatedisplaybutton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+function classifybutton_ButtonDownFcn(hObject, eventdata, handles)
+% --- If Enable == 'on', executes on mouse press in 5 pixel border.
+% --- Otherwise, executes on mouse press in 5 pixel border or over classifybutton.
+% hObject    handle to classifybutton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+
