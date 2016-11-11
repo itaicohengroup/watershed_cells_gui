@@ -66,7 +66,7 @@ function varargout = watershed_cells_gui(varargin)
 
 % Edit the above text to modify the response to help watershed_cells_gui
 
-% Last Modified by GUIDE v2.5 10-Nov-2016 09:49:03
+% Last Modified by GUIDE v2.5 10-Nov-2016 16:50:21
 
 %% ========== Begin initialization code - DO NOT EDIT ================== %%
 gui_Singleton = 1;
@@ -88,6 +88,7 @@ end
 %% =========== End initialization code - DO NOT EDIT ABOVE ============= %%
 
 %% ===================== Customized functions ========================== %%
+
 function watershed_cells_gui_OpeningFcn(hObject, eventdata, handles, varargin)
 % --- Executes just before watershed_cells_gui is made visible.
 % This function has no output args, see OutputFcn.
@@ -111,7 +112,9 @@ handles.UserData.params.values = struct(...
     'minimum_area', 35,...
     'maximum_area', 1000,...
     'minimum_signal', 0.2,...
-    'edge_alpha', 0.5);
+    'edge_alpha', 0.5,...
+    'f', 'mean(R)-mean(G)',...
+    'threshold', 0);
 handles.UserData.params.on = struct(...
     'path_to_image', [],...
     'equalization_cliplim', true,...
@@ -170,10 +173,10 @@ function handles = update_params_display(handles)
 % display parameter values in the gui
 
 params = handles.UserData.params.values;
-keep = handles.UserData.params.on;
+params_on = handles.UserData.params.on;
 results = handles.UserData.results;
 
-% parameter string values
+% segmentation parameter string values
 handles.pathtoimage.String = params.path_to_image;
 handles.sz_equalization.String = num2str(params.equalization_cliplim);
 handles.sz_background.String = num2str(params.background_size);
@@ -184,22 +187,28 @@ handles.sz_maxarea.String = num2str(params.maximum_area);
 handles.sz_minsignal.String = num2str(params.minimum_signal);
 handles.sz_edgealpha.String = num2str(params.edge_alpha);
 
-% parameters on/off values
-handles.run_equalization.Value = keep.equalization_cliplim;
-handles.run_background.Value = keep.background_size;
-handles.run_median.Value = keep.median_size;
-handles.run_gaussian.Value = keep.gaussian_sigma;
-handles.run_minarea.Value = keep.minimum_area;
-handles.run_maxarea.Value = keep.maximum_area;
-handles.run_minsignal.Value = keep.minimum_signal;
+% segmentation parameters on/off values
+handles.run_equalization.Value = params_on.equalization_cliplim;
+handles.run_background.Value = params_on.background_size;
+handles.run_median.Value = params_on.median_size;
+handles.run_gaussian.Value = params_on.gaussian_sigma;
+handles.run_minarea.Value = params_on.minimum_area;
+handles.run_maxarea.Value = params_on.maximum_area;
+handles.run_minsignal.Value = params_on.minimum_signal;
+
+% classification parameters string values
+handles.classifyeq.String = params.f;
+handles.threshold.String = num2str(params.threshold);
 
 % number of regions
 handles.numregions.String = sprintf('Number of regions: %d', results.num_regions);
+handles.numclasses.String = sprintf('State 1: %d, State 2: %d', ...
+    results.num_state1, results.num_state2);
 
 function handles = get_params(handles)
 % get parameter values from the gui
 
-% parameter string values
+% segmentation parameter string values
 handles.UserData.params.values.path_to_image = handles.pathtoimage.String;
 handles.UserData.params.values.equalization_cliplim = str2double(handles.sz_equalization.String);
 handles.UserData.params.values.background_size = str2double(handles.sz_background.String);
@@ -209,7 +218,7 @@ handles.UserData.params.values.minimum_area = str2double(handles.sz_minarea.Stri
 handles.UserData.params.values.maximum_area = str2double(handles.sz_maxarea.String);
 handles.UserData.params.values.edge_alpha = str2double(handles.sz_edgealpha.String);
 
-% parameter on/off values
+% segmentation parameter on/off values
 handles.UserData.params.on.equalization_cliplim = handles.run_equalization.Value;
 handles.UserData.params.on.background_size = handles.run_background.Value;
 handles.UserData.params.on.median_size = handles.run_median.Value;
@@ -217,6 +226,10 @@ handles.UserData.params.on.gaussian_size = handles.run_gaussian.Value;
 handles.UserData.params.on.minimum_area = handles.run_minarea.Value;
 handles.UserData.params.on.maximum_area = handles.run_maxarea.Value;
 handles.UserData.params.on.minimum_signal = handles.run_minsignal.Value;
+
+% classification parameters
+handles.UserData.params.values.f = handles.classifyeq.String;
+handles.UserData.params.values.threshold = str2double(handles.threshold.String);
 
 % check/fix parameter values
 params = handles.UserData.params.values;
@@ -403,7 +416,7 @@ if ~isempty(handles.UserData.results.state2_image)
         otherwise
             edgeim = double(edgeim);
     end
-    handles.UserData.h_state2.CData = cat(3, edgeim, edgeim, edgim*0);
+    handles.UserData.h_state2.CData = cat(3, edgeim*0, edgeim, edgim);
     
     % set alpha
     handles.UserData.h_state2.AlphaData = ...
@@ -435,7 +448,7 @@ if FileName
     params = handles.UserData.params;
     save([PathName basename '_params.mat'], 'params', '-mat');
 
-    % print parameters to text file
+    % print parameters & region totals to text file
     params = handles.UserData.params.values;
     params_on = handles.UserData.params.on;
     keys = fieldnames(params);
@@ -455,9 +468,11 @@ if FileName
         end
     end
     fprintf(f, '%s\t%d\t\n', 'num_regions', handles.UserData.results.num_regions);
+    fprintf(f, '%s\t%d\t\n', 'num_state1', handles.UserData.results.num_state1);
+    fprintf(f, '%s\t%d\t\n', 'num_state2', handles.UserData.results.num_state2);
     fclose(f);
 
-    % save label matrix 
+    % save label matrix (identifying all regions)
     label_matrix = handles.UserData.results.label_matrix;
     if ~isempty(label_matrix) && ~isempty(handles.UserData.results.num_regions)
         % matlab file
@@ -466,7 +481,55 @@ if FileName
         % tiff image
         imwrite(label_matrix, gray(handles.UserData.results.num_regions), [PathName basename '_labelmatrix.tif'], 'tif');
     end
+    
+    % save binary images identifying state1 and state2 regions
+    disp('add stuff here!')
+    
 end
+
+function classifybutton_Callback(hObject, eventdata, handles)
+% --- Executes on button press in classifybutton.
+% hObject    handle to classifybutton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% show user we are working on stuff
+handles.computing.Visible = 'on';
+drawnow
+
+% get current parameters & results
+handles = get_params(handles);
+params = handles.UserData.params.values;
+results = handles.UserData.results;
+
+% construct classification equation
+classify_fun = eval(sprintf('@(R,G,B)(%s)', params.f));
+
+% run classification
+if isa(classify_fun, 'function_handle')
+    
+    
+    % get each channel. if no color, set all channels as the raw intensity
+    switch size(results.raw_image, 3)
+        case 3
+            imR = results.raw_image(:,:,1);
+            imG = results.raw_image(:,:,1);
+            imB = results.raw_image(:,:,1);
+        case 1
+            [imR, imG, imB] = deal(results.raw_image);
+    end
+    
+    
+    % gather linear pixel indices in each region
+    stats = regionprops(results.label_matrix, 'PixelIdxList');
+    
+    
+    
+else
+    warning('Invalid classification function.')
+end
+
+
 
 %% ===================== Unaltered functions =========================== %%
 
@@ -614,7 +677,6 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
 %% --------------------- Callback
 
 function run_background_Callback(hObject, eventdata, handles)
@@ -757,11 +819,6 @@ function threshold_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of threshold as text
 %        str2double(get(hObject,'String')) returns contents of threshold as a double
 
-function classifybutton_Callback(hObject, eventdata, handles)
-% --- Executes on button press in classifybutton.
-% hObject    handle to classifybutton (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
 
 %% --------------------- ButtonDownFcn
 
@@ -785,5 +842,3 @@ function classifybutton_ButtonDownFcn(hObject, eventdata, handles)
 % hObject    handle to classifybutton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-
-
