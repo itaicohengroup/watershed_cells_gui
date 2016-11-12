@@ -66,10 +66,10 @@ function varargout = watershed_cells_gui(varargin)
 
 % Edit the above text to modify the response to help watershed_cells_gui
 
-% Last Modified by GUIDE v2.5 10-Nov-2016 16:50:21
+% Last Modified by GUIDE v2.5 11-Nov-2016 12:44:04
 
 %% ========== Begin initialization code - DO NOT EDIT ================== %%
-gui_Singleton = 1;
+gui_Singleton = 0;
 gui_State = struct('gui_Name',       mfilename, ...
                    'gui_Singleton',  gui_Singleton, ...
                    'gui_OpeningFcn', @watershed_cells_gui_OpeningFcn, ...
@@ -132,8 +132,9 @@ handles.UserData.results = struct(...
     'gray_image', [], ...
     'label_matrix', [],...
     'edge_image', [],...
+    'f_value', [],...
     'state1_image', [], ...
-    'state2_image', []);
+    'state2_image', [] );
 
 % populate GUI with default values
 handles = update_params_display(handles);
@@ -149,6 +150,7 @@ function handles = initialize_display(handles)
 
 handles.segmentation_axes.NextPlot = 'add';
 handles.classify_axes.NextPlot = 'add';
+handles.hist_axes.NextPlot = 'add';
 linkaxes([handles.segmentation_axes handles.classify_axes]);
 
 % grayscale image handles
@@ -168,6 +170,15 @@ handles.UserData.h_state1 = imshow(handles.UserData.results.state1_image, 'paren
 handles.UserData.h_state1.Tag = 'state1';
 handles.UserData.h_state2 = imshow(handles.UserData.results.state2_image, 'parent', handles.classify_axes);
 handles.UserData.h_state2.Tag = 'state2';
+
+% histogram of function value in each region
+handles.hist_axes.AmbientLightColor = [0 0 0];
+handles.UserData.h_hist = bar(handles.hist_axes, 0, 0, 0, 'edgecolor', [1 1 1]*0.5, 'facecolor', [1 1 1]*0);
+handles.UserData.h_hist.Tag = 'histogram';
+handles.UserData.h_thresh = plot(handles.hist_axes, 0, 0, 'color', [1 0 0]*0.75, 'linewidth', 1.5);
+handles.UserData.h_thresh.Tag = 'thresh';
+handles.hist_axes.XLabel.String = 'f(R,G,B)';
+handles.hist_axes.YLabel.String = 'frequency';
 
 function handles = update_params_display(handles)
 % display parameter values in the gui
@@ -202,8 +213,8 @@ handles.threshold.String = num2str(params.threshold);
 
 % number of regions
 handles.numregions.String = sprintf('Number of regions: %d', results.num_regions);
-handles.numclasses.String = sprintf('State 1: %d, State 2: %d', ...
-    results.num_state1, results.num_state2);
+handles.numclass1.String = sprintf('State 1: %d', results.num_state1);
+handles.numclass2.String = sprintf('State 2: %d', results.num_state2);
 
 function handles = get_params(handles)
 % get parameter values from the gui
@@ -216,6 +227,7 @@ handles.UserData.params.values.median_size = str2double(handles.sz_median.String
 handles.UserData.params.values.gaussian_sigma = str2double(handles.sz_gaussian.String);
 handles.UserData.params.values.minimum_area = str2double(handles.sz_minarea.String);
 handles.UserData.params.values.maximum_area = str2double(handles.sz_maxarea.String);
+handles.UserData.params.values.minimum_signal = str2double(handles.sz_minsignal.String);
 handles.UserData.params.values.edge_alpha = str2double(handles.sz_edgealpha.String);
 
 % segmentation parameter on/off values
@@ -251,6 +263,9 @@ function browsebutton_Callback(hObject, eventdata, handles)
 % hObject    handle to browsebutton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+% get/set the current parameter state
+handles = get_params(handles);
 
 % get the file path
 [filename, pathname] = uigetfile({'*.tif;*.tiff'}, 'select image to analyze');
@@ -333,6 +348,7 @@ function updatedisplaybutton_Callback(hObject, eventdata, handles)
 
 % show user we are working on stuff
 handles.computing.Visible = 'on';
+handles.computing2.Visible = 'on';
 drawnow
 
 % update parameters
@@ -361,7 +377,7 @@ if ~isempty(handles.UserData.results.edge_image)
         otherwise
             edgeim = double(edgeim);
     end
-    handles.UserData.h_edges.CData = edgeim;
+    handles.UserData.h_edges.CData = cat(3, edgeim, edgeim, edgeim*0);
     
     % set alpha
     handles.UserData.h_edges.AlphaData = ...
@@ -385,7 +401,7 @@ end
 if ~isempty(handles.UserData.results.state1_image)
     
     % deal with different image classes 
-    edgeim = handles.UserData.results.state1_image;
+    edgeim = bwperim(handles.UserData.results.state1_image);
     switch class(handles.UserData.results.raw_image)
         case 'uint8'
             edgeim = uint8(edgeim*2^8);
@@ -394,11 +410,11 @@ if ~isempty(handles.UserData.results.state1_image)
         otherwise
             edgeim = double(edgeim);
     end
-    handles.UserData.h_state1.CData = cat(3, edgeim, edgeim, edgim*0);
+    handles.UserData.h_state1.CData = cat(3, edgeim, edgeim*0, edgeim);
     
     % set alpha
     handles.UserData.h_state1.AlphaData = ...
-        handles.UserData.results.state1_image * ...
+        bwperim(handles.UserData.results.state1_image) * ...
         handles.UserData.params.values.edge_alpha;
     
 end
@@ -407,7 +423,7 @@ end
 if ~isempty(handles.UserData.results.state2_image)
     
     % deal with different image classes 
-    edgeim = handles.UserData.results.state2_image;
+    edgeim = bwperim(handles.UserData.results.state2_image);
     switch class(handles.UserData.results.raw_image)
         case 'uint8'
             edgeim = uint8(edgeim*2^8);
@@ -416,21 +432,135 @@ if ~isempty(handles.UserData.results.state2_image)
         otherwise
             edgeim = double(edgeim);
     end
-    handles.UserData.h_state2.CData = cat(3, edgeim*0, edgeim, edgim);
+    handles.UserData.h_state2.CData = cat(3, edgeim*0, edgeim, edgeim);
     
     % set alpha
     handles.UserData.h_state2.AlphaData = ...
-        handles.UserData.results.state2_image * ...
+        bwperim(handles.UserData.results.state2_image) * ...
         handles.UserData.params.values.edge_alpha;
     
 end
 
+% show histogram of state division
+if ~isempty(handles.UserData.results.f_value)
+    
+    % bin the f results
+    nbins = round(handles.UserData.results.num_regions/100)*5;
+    [N, bine] = histcounts(handles.UserData.results.f_value, nbins);
+    binc = diff(bine)/2 + bine(1:end-1);
+    
+    % show the histogram
+    handles.UserData.h_hist.XData = binc;
+    handles.UserData.h_hist.YData = N;
+    handles.UserData.h_hist.BarWidth = 1;
+    
+    % show the threshold
+    handles.UserData.h_thresh.XData = [1 1]*handles.UserData.params.values.threshold;
+    handles.UserData.h_thresh.YData = [0 1.1]*max(N);
+end
+
 % show user we are working on stuff
 handles.computing.Visible = 'off';
+handles.computing2.Visible = 'off';
 drawnow
 
 % Update handles structure
 guidata(hObject, handles);
+
+function classifybutton_Callback(hObject, eventdata, handles)
+% --- Executes on button press in classifybutton.
+% hObject    handle to classifybutton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% show user we are working on stuff
+handles.computing2.Visible = 'on';
+drawnow
+
+% get current parameters & results
+prev_f = handles.UserData.params.values.f;
+prev_t = handles.UserData.params.values.threshold;
+prev_fvalue = handles.UserData.results.f_value;
+handles = get_params(handles);
+params = handles.UserData.params.values;
+results = handles.UserData.results;
+
+% construct classification equation & initialize output
+classify_fun = eval(sprintf('@(R,G,B)(%s)', params.f));
+regions_ix = (1:results.num_regions)';
+
+% run classification (if we have a valid function and a non-empty image)
+if isa(classify_fun, 'function_handle') && ...
+        ~isempty(handles.UserData.results.raw_image)
+    
+    % apply function to each region, if we haven't already (no values, or
+    % new function)
+    if isempty(results.f_value) || ~strcmp(prev_f, params.f)
+        results.f_value = apply_function(...
+            results.raw_image, results.label_matrix, classify_fun);
+    end
+    
+    % apply threshold if we haven't already (new values, new function, or
+    % new threshold)
+    if ~isequal(results.f_value, prev_fvalue) || ~strcmp(prev_f, params.f) ...
+            || ~isequal(prev_t, params.threshold)
+        
+        % threshold the function values and count the number in each state
+        state1_ix = regions_ix(results.f_value > params.threshold);
+        state2_ix = regions_ix(results.f_value < params.threshold);
+        results.num_state1 = length(state1_ix);
+        results.num_state2 = length(state2_ix);
+
+        % create binary images highlighting regions in each state
+        results.state1_image = ismember(results.label_matrix, state1_ix);
+        results.state2_image = ismember(results.label_matrix, state2_ix);
+    end  
+else
+    warning('Invalid classification function.')
+end
+
+% store results back into the handles structure
+handles.UserData.results = results;
+
+% automatically call the updatedisplay button
+updatedisplaybutton_Callback(hObject, eventdata, handles);
+
+% show user we are done working on stuff
+handles.computing2.Visible = 'off';
+drawnow
+
+% Update handles structure
+guidata(hObject, handles);
+
+function f_value = apply_function(raw_image, label_matrix, classify_fun)
+
+% setup and initialize output
+iscolor = size(raw_image, 3) > 1;
+num_regions = max(label_matrix(:));
+f_value = NaN(num_regions, 1);
+
+% get each color channel, if applicable
+if iscolor
+        imR = raw_image(:,:,1);
+        imG = raw_image(:,:,2);
+        imB = raw_image(:,:,3);
+end
+
+% compute the classification function output for each region
+for rr = 1:num_regions
+    if iscolor
+        % get pixel values in each color channel of the current region
+        % and convert to double class
+        pxR = double(imR(label_matrix==rr));
+        pxG = double(imG(label_matrix==rr));
+        pxB = double(imB(label_matrix==rr));
+        f_value(rr) = classify_fun(pxR, pxG, pxB);
+    else
+        % compute function with grayscale intensity values instead
+        px = double(raw_image(label_matrix==rr));
+        f_value(rr) = classify_fun(px, px, px);
+    end
+end
 
 function savedatabutton_Callback(hObject, eventdata, handles)
 % --- Executes on button press in savedatabutton.
@@ -443,10 +573,15 @@ function savedatabutton_Callback(hObject, eventdata, handles)
 if FileName
     basename = regexp(FileName, '\.\S\S\S$', 'split');
     basename = basename{1};
-
+    
     % save parameters as matlab files
     params = handles.UserData.params;
     save([PathName basename '_params.mat'], 'params', '-mat');
+    
+    % save results as matlab file
+    results = handles.UserData.results;
+    results = rmfield(results, {'raw_image', 'gray_image', 'edge_image'});
+    save([PathName basename '_results.mat'], 'results', '-mat');
 
     % print parameters & region totals to text file
     params = handles.UserData.params.values;
@@ -475,61 +610,18 @@ if FileName
     % save label matrix (identifying all regions)
     label_matrix = handles.UserData.results.label_matrix;
     if ~isempty(label_matrix) && ~isempty(handles.UserData.results.num_regions)
-        % matlab file
-        save([PathName basename '_labelmatrix.mat'], 'label_matrix', '-mat');
-
         % tiff image
         imwrite(label_matrix, gray(handles.UserData.results.num_regions), [PathName basename '_labelmatrix.tif'], 'tif');
     end
     
     % save binary images identifying state1 and state2 regions
-    disp('add stuff here!')
-    
-end
-
-function classifybutton_Callback(hObject, eventdata, handles)
-% --- Executes on button press in classifybutton.
-% hObject    handle to classifybutton (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% show user we are working on stuff
-handles.computing.Visible = 'on';
-drawnow
-
-% get current parameters & results
-handles = get_params(handles);
-params = handles.UserData.params.values;
-results = handles.UserData.results;
-
-% construct classification equation
-classify_fun = eval(sprintf('@(R,G,B)(%s)', params.f));
-
-% run classification
-if isa(classify_fun, 'function_handle')
-    
-    
-    % get each channel. if no color, set all channels as the raw intensity
-    switch size(results.raw_image, 3)
-        case 3
-            imR = results.raw_image(:,:,1);
-            imG = results.raw_image(:,:,1);
-            imB = results.raw_image(:,:,1);
-        case 1
-            [imR, imG, imB] = deal(results.raw_image);
+    if ~isempty(handles.UserData.results.state1_image) && ~isempty(handles.UserData.results.state2_image);
+        % tiff image
+        imwrite(handles.UserData.results.state1_image, [PathName basename '_state1.tif'], 'tif');
+        imwrite(handles.UserData.results.state2_image, [PathName basename '_state2.tif'], 'tif');
     end
     
-    
-    % gather linear pixel indices in each region
-    stats = regionprops(results.label_matrix, 'PixelIdxList');
-    
-    
-    
-else
-    warning('Invalid classification function.')
 end
-
-
 
 %% ===================== Unaltered functions =========================== %%
 
