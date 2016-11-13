@@ -66,7 +66,7 @@ function varargout = watershed_cells_gui(varargin)
 
 % Edit the above text to modify the response to help watershed_cells_gui
 
-% Last Modified by GUIDE v2.5 11-Nov-2016 12:44:04
+% Last Modified by GUIDE v2.5 12-Nov-2016 16:46:09
 
 %% ========== Begin initialization code - DO NOT EDIT ================== %%
 gui_Singleton = 0;
@@ -123,7 +123,8 @@ handles.UserData.params.on = struct(...
     'gaussian_sigma', true,...
     'minimum_area', true,...
     'maximum_area', true,...
-    'minimum_signal', true);
+    'minimum_signal', true,...
+    'automatic_threshold', false );
 handles.UserData.results = struct(...
     'num_regions', [],...
     'num_state1', [],...
@@ -144,6 +145,42 @@ handles = initialize_display(handles);
 
 % Update handles structure
 guidata(hObject, handles);
+
+function handles = update_params_display(handles)
+% display parameter values in the gui
+
+params = handles.UserData.params.values;
+params_on = handles.UserData.params.on;
+results = handles.UserData.results;
+
+% segmentation parameter string values
+handles.pathtoimage.String = params.path_to_image;
+handles.sz_equalization.String = num2str(params.equalization_cliplim);
+handles.sz_background.String = num2str(params.background_size);
+handles.sz_median.String = num2str(params.median_size);
+handles.sz_gaussian.String = num2str(params.gaussian_sigma);
+handles.sz_minarea.String = num2str(params.minimum_area);
+handles.sz_maxarea.String = num2str(params.maximum_area);
+handles.sz_minsignal.String = num2str(params.minimum_signal);
+
+% segmentation parameters on/off values
+handles.run_equalization.Value = params_on.equalization_cliplim;
+handles.run_background.Value = params_on.background_size;
+handles.run_median.Value = params_on.median_size;
+handles.run_gaussian.Value = params_on.gaussian_sigma;
+handles.run_minarea.Value = params_on.minimum_area;
+handles.run_maxarea.Value = params_on.maximum_area;
+handles.run_minsignal.Value = params_on.minimum_signal;
+
+% classification parameters string and on/off values
+handles.classifyeq.String = params.f;
+handles.threshold.String = num2str(params.threshold);
+handles.otsuthresh.Value = params_on.automatic_threshold;
+
+% number of regions
+handles.numregions.String = sprintf('Number of regions: %d', results.num_regions);
+handles.numclass1.String = sprintf('State 1: %d', results.num_state1);
+handles.numclass2.String = sprintf('State 2: %d', results.num_state2);
 
 function handles = initialize_display(handles)
 % initialize the axes image data
@@ -178,43 +215,7 @@ handles.UserData.h_hist.Tag = 'histogram';
 handles.UserData.h_thresh = plot(handles.hist_axes, 0, 0, 'color', [1 0 0]*0.75, 'linewidth', 1.5);
 handles.UserData.h_thresh.Tag = 'thresh';
 handles.hist_axes.XLabel.String = 'f(R,G,B)';
-handles.hist_axes.YLabel.String = 'frequency';
-
-function handles = update_params_display(handles)
-% display parameter values in the gui
-
-params = handles.UserData.params.values;
-params_on = handles.UserData.params.on;
-results = handles.UserData.results;
-
-% segmentation parameter string values
-handles.pathtoimage.String = params.path_to_image;
-handles.sz_equalization.String = num2str(params.equalization_cliplim);
-handles.sz_background.String = num2str(params.background_size);
-handles.sz_median.String = num2str(params.median_size);
-handles.sz_gaussian.String = num2str(params.gaussian_sigma);
-handles.sz_minarea.String = num2str(params.minimum_area);
-handles.sz_maxarea.String = num2str(params.maximum_area);
-handles.sz_minsignal.String = num2str(params.minimum_signal);
-handles.sz_edgealpha.String = num2str(params.edge_alpha);
-
-% segmentation parameters on/off values
-handles.run_equalization.Value = params_on.equalization_cliplim;
-handles.run_background.Value = params_on.background_size;
-handles.run_median.Value = params_on.median_size;
-handles.run_gaussian.Value = params_on.gaussian_sigma;
-handles.run_minarea.Value = params_on.minimum_area;
-handles.run_maxarea.Value = params_on.maximum_area;
-handles.run_minsignal.Value = params_on.minimum_signal;
-
-% classification parameters string values
-handles.classifyeq.String = params.f;
-handles.threshold.String = num2str(params.threshold);
-
-% number of regions
-handles.numregions.String = sprintf('Number of regions: %d', results.num_regions);
-handles.numclass1.String = sprintf('State 1: %d', results.num_state1);
-handles.numclass2.String = sprintf('State 2: %d', results.num_state2);
+handles.hist_axes.YLabel.String = 'count';
 
 function handles = get_params(handles)
 % get parameter values from the gui
@@ -228,7 +229,6 @@ handles.UserData.params.values.gaussian_sigma = str2double(handles.sz_gaussian.S
 handles.UserData.params.values.minimum_area = str2double(handles.sz_minarea.String);
 handles.UserData.params.values.maximum_area = str2double(handles.sz_maxarea.String);
 handles.UserData.params.values.minimum_signal = str2double(handles.sz_minsignal.String);
-handles.UserData.params.values.edge_alpha = str2double(handles.sz_edgealpha.String);
 
 % segmentation parameter on/off values
 handles.UserData.params.on.equalization_cliplim = handles.run_equalization.Value;
@@ -242,6 +242,7 @@ handles.UserData.params.on.minimum_signal = handles.run_minsignal.Value;
 % classification parameters
 handles.UserData.params.values.f = handles.classifyeq.String;
 handles.UserData.params.values.threshold = str2double(handles.threshold.String);
+handles.UserData.params.on.automatic_threshold = handles.otsuthresh.Value;
 
 % check/fix parameter values
 params = handles.UserData.params.values;
@@ -252,7 +253,6 @@ params.gaussian_sigma = abs(params.gaussian_sigma); % positive
 params.minimum_area = round(abs(params.minimum_area)); % positive integer
 params.maximum_area = round(abs(params.maximum_area)); % positive integer
 params.minimum_signal = min(1, abs(params.minimum_signal)); % positive <= 1
-params.edge_alpha = min(1, abs(params.edge_alpha)); % positive <= 1
 handles.UserData.params.values = params;
 
 % update display with fixed values
@@ -264,48 +264,88 @@ function browsebutton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
+% show user we are working on stuff
+handles.computing.Visible = 'on';
+handles.computing2.Visible = 'on';
+drawnow
+
 % get/set the current parameter state
 handles = get_params(handles);
 
 % get the file path
 [filename, pathname] = uigetfile({'*.tif;*.tiff'}, 'select image to analyze');
 if filename
+    
+    % construct the full path
     handles.UserData.params.values.path_to_image = [pathname filename];
 
+    % import image
+    [handles, valid] = import_image(handles);
+    
     % update parameter display
     handles = update_params_display(handles);
-
-    % import image
-    handles = import_image(handles);
-
-    % Update handles structure
-    guidata(hObject, handles);
-
-    % Show the image
-    updatedisplaybutton_Callback(hObject, eventdata, handles)
+    
+    % show the images
+    if valid
+        handles = show_images(handles);
+    end
 end
 
-function handles = import_image(handles)
-% import image from the path and store grayscale image
+% show user we are done working on stuff
+handles.computing.Visible = 'off';
+handles.computing2.Visible = 'off';
+drawnow
+
+% Update handles structure
+guidata(hObject, handles);
+
+function [handles, valid] = import_image(handles)
+% import image and compute grayscale image
+
+valid = false;
 
 if exist(handles.UserData.params.values.path_to_image, 'file')    
-    % raw image
+
+    % import raw image
     handles.UserData.results.raw_image = imread(handles.UserData.params.values.path_to_image);
-    
-    % grayscale image
+
+    % compute grayscale image
     if size(handles.UserData.results.raw_image, 3) > 1 
         handles.UserData.results.gray_image = mat2gray(rgb2gray(handles.UserData.results.raw_image));
     else
         handles.UserData.results.gray_image = mat2gray(handles.UserData.results.raw_image);
     end
     
+    valid = true;
 else
+    
+    % warning
     warning('Image not found')
 end
 
-function findcellsbutton_Callback(hObject, eventdata, handles)
-% --- Executes on button press in findcellsbutton.
-% hObject    handle to findcellsbutton (see GCBO)
+function handles = show_images(handles)
+
+% show the grayscale image in the segmentation axes
+handles.UserData.h_grayim.CData = handles.UserData.results.gray_image;
+handles.segmentation_axes.XTick = [];
+handles.segmentation_axes.YTick = [];
+if ~isempty(handles.UserData.results.gray_image)
+    handles.segmentation_axes.XLim = [0 size(handles.UserData.results.gray_image, 2)]+0.5;
+    handles.segmentation_axes.YLim = [0 size(handles.UserData.results.gray_image, 1)]+0.5;
+end
+
+% show the raw image in the classification axes
+handles.UserData.h_rawim.CData = handles.UserData.results.raw_image;
+handles.classify_axes.XTick = [];
+handles.classify_axes.YTick = [];
+if ~isempty(handles.UserData.results.raw_image)
+    handles.classify_axes.XLim = [0 size(handles.UserData.results.raw_image, 2)]+0.5;
+    handles.classify_axes.YLim = [0 size(handles.UserData.results.raw_image, 1)]+0.5;
+end
+
+function segmentationbutton_Callback(hObject, eventdata, handles)
+% --- Executes on button press in segmentationbutton.
+% hObject    handle to segmentationbutton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -318,56 +358,18 @@ handles = get_params(handles);
 params = handles.UserData.params.values;
 params_on = handles.UserData.params.on;
 
-% read in the image
-handles = import_image(handles);
-
-% if we have an image, run the analysis to find cells and store result
+% if we have an image
 if ~isempty(handles.UserData.results.gray_image)
+
+    % run segmentation and record the results
     [label_matrix, edge_image] = find_cells(...
         handles.UserData.results.gray_image, params, params_on);
     handles.UserData.results.label_matrix = label_matrix;
     handles.UserData.results.edge_image = edge_image;
     handles.UserData.results.num_regions = max(label_matrix(:));
-end
 
-% automatically call the updatedisplay button
-updatedisplaybutton_Callback(hObject, eventdata, handles);
-
-% show user we are done computing stuff
-handles.computing.Visible = 'off';
-drawnow
-
-% Update handles structure
-guidata(hObject, handles);
-
-function updatedisplaybutton_Callback(hObject, eventdata, handles)
-% --- Executes on button press in updatedisplaybutton.
-% hObject    handle to updatedisplaybutton (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% show user we are working on stuff
-handles.computing.Visible = 'on';
-handles.computing2.Visible = 'on';
-drawnow
-
-% update parameters
-handles = get_params(handles);
-
-% show grayscale image
-if ~isempty(handles.UserData.results.gray_image) && ...
-        ~isequal(handles.UserData.h_grayim.CData, handles.UserData.results.gray_image)
-    handles.UserData.h_grayim.CData = handles.UserData.results.gray_image;
-    handles.segmentation_axes.XTick = [];
-    handles.segmentation_axes.YTick = [];
-    handles.segmentation_axes.XLim = [0 size(handles.UserData.results.gray_image, 2)]+0.5;
-    handles.segmentation_axes.YLim = [0 size(handles.UserData.results.gray_image, 1)]+0.5;
-end
-
-% show edge image
-if ~isempty(handles.UserData.results.edge_image)
-    
-    % deal with different image classes 
+    % show edge image
+    % - deal with different image classes 
     edgeim = handles.UserData.results.edge_image;
     switch class(handles.UserData.results.gray_image)
         case 'uint8'
@@ -378,68 +380,206 @@ if ~isempty(handles.UserData.results.edge_image)
             edgeim = double(edgeim);
     end
     handles.UserData.h_edges.CData = cat(3, edgeim, edgeim, edgeim*0);
-    
-    % set alpha
+    % - set alpha
     handles.UserData.h_edges.AlphaData = ...
         handles.UserData.results.edge_image * ...
         handles.UserData.params.values.edge_alpha;
-    
+
+    % update the parameter/ number display
+    handles = update_params_display(handles);
 end
 
+% show user we are done working on stuff
+handles.computing.Visible = 'off';
+drawnow
 
-% show raw image in classify_axes
-if ~isempty(handles.UserData.results.raw_image) && ...
-        ~isequal(handles.UserData.h_rawim.CData, handles.UserData.results.raw_image)
-    handles.UserData.h_rawim.CData = handles.UserData.results.raw_image;
-    handles.classify_axes.XTick = [];
-    handles.classify_axes.YTick = [];
-    handles.classify_axes.XLim = [0 size(handles.UserData.results.raw_image, 2)]+0.5;
-    handles.classify_axes.YLim = [0 size(handles.UserData.results.raw_image, 1)]+0.5;
+% Update handles structure
+guidata(hObject, handles);
+
+function otsuthresh_Callback(hObject, eventdata, handles)
+% --- Executes on button press in otsuthresh.
+% hObject    handle to otsuthresh (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% Hint: get(hObject,'Value') returns toggle state of otsuthresh
+    
+handles = get_params(handles);
+
+% see if the automatic box is checked or not
+auto_otsu_threshold = handles.otsuthresh.Value;
+
+if auto_otsu_threshold
+    % if automatic, disable the custom threshold
+    handles.threshold.Enable = 'inactive';
+    handles.threshold.ForegroundColor = [1 1 1]*0.15;
+    handles.UserData.params.on.automatic_threshold = true;
+else
+    handles.threshold.Enable = 'on';
+    handles.threshold.ForegroundColor = [0.75686 0.86667 0.77647];
+    handles.UserData.params.on.automatic_threshold = false;
 end
 
-% show state1 image in classify_axes
-if ~isempty(handles.UserData.results.state1_image)
+% update display
+handles = update_params_display(handles);
+
+% Update handles structure
+guidata(hObject, handles);
+
+function classificationbutton_Callback(hObject, eventdata, handles)
+% --- Executes on button press in classificationbutton.
+% hObject    handle to classificationbutton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% show user we are working on stuff
+handles.computing2.Visible = 'on';
+drawnow
+
+% get previous results
+prev_f = handles.UserData.params.values.f;
+
+% get current parameters & results
+handles = get_params(handles);
+
+% construct classification equation & initialize output
+try
+    classify_fun = eval(sprintf('@(R,G,B)(%s)', handles.UserData.params.values.f));
+catch
+    classify_fun = NaN;
+end
+
+% run classification (if we have a valid function and a non-empty image)
+if isa(classify_fun, 'function_handle')
     
-    % deal with different image classes 
-    edgeim = bwperim(handles.UserData.results.state1_image);
-    switch class(handles.UserData.results.raw_image)
-        case 'uint8'
-            edgeim = uint8(edgeim*2^8);
-        case 'double'
-            edgeim = double(edgeim);
-        otherwise
-            edgeim = double(edgeim);
+    % only continue if we have an image
+    if ~isempty(handles.UserData.results.gray_image)
+        
+        % apply function to each region, if we haven't already
+        if isempty(handles.UserData.results.f_value) || ...
+                ~strcmp(prev_f, handles.UserData.params.values.f)
+            try
+                handles = apply_function(handles, classify_fun);
+            catch err
+                switch err.identifier
+                    case 'MATLAB:subsassignnumelmismatch'
+                        warning(sprintf('Unable to apply classification function. Function must accept a list of pixel values and compute one scalar output. Skipping classification.', err.message));
+                    otherwise
+                        warning(sprintf('Unable to apply classification function. MATLAB ERROR:%s Skipping classification.', err.message));
+                end
+            end
+        end
+
+        % apply threshold 
+        handles = apply_threshold(handles);
+
+        % display the classification results
+        handles = show_classification(handles);
+
+        % update the parameter/ number display
+        handles = update_params_display(handles);
     end
-    handles.UserData.h_state1.CData = cat(3, edgeim, edgeim*0, edgeim);
     
-    % set alpha
-    handles.UserData.h_state1.AlphaData = ...
-        bwperim(handles.UserData.results.state1_image) * ...
-        handles.UserData.params.values.edge_alpha;
-    
+else
+    warning('Invalid classification function.')
 end
 
-% show state2 image in classify_axes
-if ~isempty(handles.UserData.results.state2_image)
-    
-    % deal with different image classes 
-    edgeim = bwperim(handles.UserData.results.state2_image);
-    switch class(handles.UserData.results.raw_image)
-        case 'uint8'
-            edgeim = uint8(edgeim*2^8);
-        case 'double'
-            edgeim = double(edgeim);
-        otherwise
-            edgeim = double(edgeim);
-    end
-    handles.UserData.h_state2.CData = cat(3, edgeim*0, edgeim, edgeim);
-    
-    % set alpha
-    handles.UserData.h_state2.AlphaData = ...
-        bwperim(handles.UserData.results.state2_image) * ...
-        handles.UserData.params.values.edge_alpha;
-    
+% show user we are working on stuff
+handles.computing2.Visible = 'off';
+drawnow
+
+% Update handles structure
+guidata(hObject, handles);
+
+function handles = apply_function(handles, classify_fun)
+
+raw_image = handles.UserData.results.raw_image;
+label_matrix = handles.UserData.results.label_matrix; 
+
+% setup and initialize output
+iscolor = size(raw_image, 3) > 1;
+num_regions = max(label_matrix(:));
+handles.UserData.results.f_value = NaN(num_regions, 1);
+
+% get each color channel, if applicable
+if iscolor
+        imR = raw_image(:,:,1);
+        imG = raw_image(:,:,2);
+        imB = raw_image(:,:,3);
 end
+
+% compute the classification function output for each region
+for rr = 1:num_regions
+    if iscolor
+        % get pixel values in each color channel of the current region
+        % and convert to double class
+        pxR = double(imR(label_matrix==rr));
+        pxG = double(imG(label_matrix==rr));
+        pxB = double(imB(label_matrix==rr));
+        handles.UserData.results.f_value(rr) = classify_fun(pxR, pxG, pxB);
+    else
+        % compute function with grayscale intensity values instead
+        px = double(raw_image(label_matrix==rr));
+        handles.UserData.results.f_value(rr) = classify_fun(px, px, px);
+    end
+end
+
+function handles = apply_threshold(handles)
+
+% cosntruct automatic Otsu threshold
+if handles.UserData.params.on.automatic_threshold
+    handles.UserData.params.values.threshold = multithresh(handles.UserData.results.f_value, 1);
+end
+
+% threshold the function values and count the number in each state
+regions_ix = (1:handles.UserData.results.num_regions)';
+state1_ix = regions_ix(handles.UserData.results.f_value > handles.UserData.params.values.threshold);
+state2_ix = regions_ix(handles.UserData.results.f_value < handles.UserData.params.values.threshold);
+handles.UserData.results.num_state1 = length(state1_ix);
+handles.UserData.results.num_state2 = length(state2_ix);
+
+% create binary images highlighting regions in each state
+handles.UserData.results.state1_image = ismember(handles.UserData.results.label_matrix, state1_ix);
+handles.UserData.results.state2_image = ismember(handles.UserData.results.label_matrix, state2_ix);
+
+function handles = show_classification(handles)
+
+% show state1 image
+
+% - deal with different image classes 
+edgeim = bwperim(handles.UserData.results.state1_image);
+switch class(handles.UserData.results.raw_image)
+    case 'uint8'
+        edgeim = uint8(edgeim*2^8);
+    case 'double'
+        edgeim = double(edgeim);
+    otherwise
+        edgeim = double(edgeim);
+end
+handles.UserData.h_state1.CData = cat(3, edgeim, edgeim*0, edgeim);
+
+% - set alpha
+handles.UserData.h_state1.AlphaData = ...
+    bwperim(handles.UserData.results.state1_image) * ...
+    handles.UserData.params.values.edge_alpha;
+
+% show state2 image    
+
+% - deal with different image classes 
+edgeim = bwperim(handles.UserData.results.state2_image);
+switch class(handles.UserData.results.raw_image)
+    case 'uint8'
+        edgeim = uint8(edgeim*2^8);
+    case 'double'
+        edgeim = double(edgeim);
+    otherwise
+        edgeim = double(edgeim);
+end
+handles.UserData.h_state2.CData = cat(3, edgeim*0, edgeim, edgeim);
+
+% - set alpha
+handles.UserData.h_state2.AlphaData = ...
+    bwperim(handles.UserData.results.state2_image) * ...
+    handles.UserData.params.values.edge_alpha;
 
 % show histogram of state division
 if ~isempty(handles.UserData.results.f_value)
@@ -459,108 +599,9 @@ if ~isempty(handles.UserData.results.f_value)
     handles.UserData.h_thresh.YData = [0 1.1]*max(N);
 end
 
-% show user we are working on stuff
-handles.computing.Visible = 'off';
-handles.computing2.Visible = 'off';
-drawnow
-
-% Update handles structure
-guidata(hObject, handles);
-
-function classifybutton_Callback(hObject, eventdata, handles)
-% --- Executes on button press in classifybutton.
-% hObject    handle to classifybutton (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% show user we are working on stuff
-handles.computing2.Visible = 'on';
-drawnow
-
-% get current parameters & results
-prev_f = handles.UserData.params.values.f;
-prev_t = handles.UserData.params.values.threshold;
-prev_fvalue = handles.UserData.results.f_value;
-handles = get_params(handles);
-params = handles.UserData.params.values;
-results = handles.UserData.results;
-
-% construct classification equation & initialize output
-classify_fun = eval(sprintf('@(R,G,B)(%s)', params.f));
-regions_ix = (1:results.num_regions)';
-
-% run classification (if we have a valid function and a non-empty image)
-if isa(classify_fun, 'function_handle') && ...
-        ~isempty(handles.UserData.results.raw_image)
-    
-    % apply function to each region, if we haven't already (no values, or
-    % new function)
-    if isempty(results.f_value) || ~strcmp(prev_f, params.f)
-        results.f_value = apply_function(...
-            results.raw_image, results.label_matrix, classify_fun);
-    end
-    
-    % apply threshold if we haven't already (new values, new function, or
-    % new threshold)
-    if ~isequal(results.f_value, prev_fvalue) || ~strcmp(prev_f, params.f) ...
-            || ~isequal(prev_t, params.threshold)
-        
-        % threshold the function values and count the number in each state
-        state1_ix = regions_ix(results.f_value > params.threshold);
-        state2_ix = regions_ix(results.f_value < params.threshold);
-        results.num_state1 = length(state1_ix);
-        results.num_state2 = length(state2_ix);
-
-        % create binary images highlighting regions in each state
-        results.state1_image = ismember(results.label_matrix, state1_ix);
-        results.state2_image = ismember(results.label_matrix, state2_ix);
-    end  
-else
-    warning('Invalid classification function.')
-end
-
-% store results back into the handles structure
-handles.UserData.results = results;
-
-% automatically call the updatedisplay button
-updatedisplaybutton_Callback(hObject, eventdata, handles);
-
-% show user we are done working on stuff
-handles.computing2.Visible = 'off';
-drawnow
-
-% Update handles structure
-guidata(hObject, handles);
-
-function f_value = apply_function(raw_image, label_matrix, classify_fun)
-
-% setup and initialize output
-iscolor = size(raw_image, 3) > 1;
-num_regions = max(label_matrix(:));
-f_value = NaN(num_regions, 1);
-
-% get each color channel, if applicable
-if iscolor
-        imR = raw_image(:,:,1);
-        imG = raw_image(:,:,2);
-        imB = raw_image(:,:,3);
-end
-
-% compute the classification function output for each region
-for rr = 1:num_regions
-    if iscolor
-        % get pixel values in each color channel of the current region
-        % and convert to double class
-        pxR = double(imR(label_matrix==rr));
-        pxG = double(imG(label_matrix==rr));
-        pxB = double(imB(label_matrix==rr));
-        f_value(rr) = classify_fun(pxR, pxG, pxB);
-    else
-        % compute function with grayscale intensity values instead
-        px = double(raw_image(label_matrix==rr));
-        f_value(rr) = classify_fun(px, px, px);
-    end
-end
+% set the state count totals to be visible
+handles.numclass1.Visible = 'on';
+handles.numclass2.Visible = 'on';
 
 function savedatabutton_Callback(hObject, eventdata, handles)
 % --- Executes on button press in savedatabutton.
@@ -569,59 +610,91 @@ function savedatabutton_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % bring up a dialog box to pick the save name/location
-[FileName,PathName] = uiputfile('*.*', 'Basename to save results', 'output');
-if FileName
-    basename = regexp(FileName, '\.\S\S\S$', 'split');
-    basename = basename{1};
+PathName = uigetdir('*.*', 'Select folder to save results');
+if PathName
+    
+    % save results using the image filename as the base name
+    [~,basename,~] = fileparts(handles.UserData.params.values.path_to_image);
+    if isempty(basename)
+        basename = 'output';
+    end
+    basename = fullfile(PathName,basename);
     
     % save parameters as matlab files
     params = handles.UserData.params;
-    save([PathName basename '_params.mat'], 'params', '-mat');
+    save([basename '_params.mat'], 'params', '-mat');
     
     % save results as matlab file
     results = handles.UserData.results;
     results = rmfield(results, {'raw_image', 'gray_image', 'edge_image'});
-    save([PathName basename '_results.mat'], 'results', '-mat');
+    save([basename '_results.mat'], 'results', '-mat');
 
     % print parameters & region totals to text file
     params = handles.UserData.params.values;
     params_on = handles.UserData.params.on;
-    keys = fieldnames(params);
-    f = fopen([PathName basename '_params.txt'], 'wt+');
-    fprintf(f, 'NAME\tVALUE\tON\n');
-    for ii = 1:length(keys)
-        value = params.(keys{ii});
-        try
-            on = params_on.(keys{ii});
-        catch
-            on = 1;
-        end
-        if isnumeric(value)
-            fprintf(f, '%s\t%f\t%d\n', keys{ii}, value, on);
-        elseif ischar(value)
-            fprintf(f, '%s\t%s\t%d\n', keys{ii}, value, on);
-        end
-    end
-    fprintf(f, '%s\t%d\t\n', 'num_regions', handles.UserData.results.num_regions);
-    fprintf(f, '%s\t%d\t\n', 'num_state1', handles.UserData.results.num_state1);
-    fprintf(f, '%s\t%d\t\n', 'num_state2', handles.UserData.results.num_state2);
+    otsu_str = {'manual', 'auto'};
+    f = fopen([basename '_params.txt'], 'wt+');
+    fprintf(f, '%20s\t%s\t%s\n', 'PARAMETER', 'VALUE', 'ON');
+    fprintf(f, '%20s\t\t%s\n', 'path_to_image', params.path_to_image);
+    fprintf(f, '%20s\t%d\t%d\n', 'equalization_cliplim', params_on.equalization_cliplim, params.equalization_cliplim);
+    fprintf(f, '%20s\t%d\t%d\n', 'background_size', params_on.background_size, params.background_size);
+    fprintf(f, '%20s\t%d\t%d\n', 'median_size', params_on.median_size, params.median_size);
+    fprintf(f, '%20s\t%d\t%d\n', 'gaussian_sigma', params_on.gaussian_sigma, params.gaussian_sigma);
+    fprintf(f, '%20s\t%d\t%d\n', 'minimum_area', params_on.minimum_area, params.minimum_area);
+    fprintf(f, '%20s\t%d\t%d\n', 'maximum_area', params_on.maximum_area, params.maximum_area);
+    fprintf(f, '%20s\t%d\t%d\n', 'minimum_signal', params_on.minimum_signal, params.minimum_signal);
+    fprintf(f, '%20s\t\t%s\n', 'f', params.f);
+    fprintf(f, '%20s\t%s\t%d\n', 'threshold', otsu_str{params_on.automatic_threshold+1}, params.threshold);
+    fprintf(f, '%20s\t\t%d\n', 'num_regions', handles.UserData.results.num_regions);
+    fprintf(f, '%20s\t\t%d\n', 'num_state1', handles.UserData.results.num_state1);
+    fprintf(f, '%20s\t\t%d\n', 'num_state2', handles.UserData.results.num_state2);
     fclose(f);
 
-    % save label matrix (identifying all regions)
+    % save images identifying all regions
     label_matrix = handles.UserData.results.label_matrix;
     if ~isempty(label_matrix) && ~isempty(handles.UserData.results.num_regions)
-        % tiff image
-        imwrite(label_matrix, gray(handles.UserData.results.num_regions), [PathName basename '_labelmatrix.tif'], 'tif');
+        % labeled (numbered) regions
+        imwrite(label_matrix, gray(handles.UserData.results.num_regions), [basename '_labelmatrix.tif'], 'tif');
+        
+        % overlay image as a tif
+        [tmpR, tmpG, tmpB] = deal(handles.UserData.h_grayim.CData);
+        aa = logical(handles.UserData.h_edges.CData(:,:,1));
+        tmpR(aa) = 1;
+        tmpG(aa) = 1;
+        overlayim = cat(3, tmpR, tmpG, tmpB);
+        imwrite(overlayim, [basename '_regions_overlay.tif'], 'tif');
     end
     
-    % save binary images identifying state1 and state2 regions
+    % save images identifying state1/2 regions
     if ~isempty(handles.UserData.results.state1_image) && ~isempty(handles.UserData.results.state2_image);
-        % tiff image
-        imwrite(handles.UserData.results.state1_image, [PathName basename '_state1.tif'], 'tif');
-        imwrite(handles.UserData.results.state2_image, [PathName basename '_state2.tif'], 'tif');
+        % binary tif images
+        imwrite(double(handles.UserData.results.state1_image), [basename '_state1.tif']);
+        imwrite(double(handles.UserData.results.state2_image), [basename '_state2.tif']);
+        
+        % overlay image as a tif
+        switch class(handles.UserData.h_rawim.CData)
+            case 'uint8'
+                val = 255;
+            case 'double'
+                val = 1;
+            otherwise
+                val = 255;
+        end
+        tmpR = handles.UserData.h_rawim.CData(:,:,1);
+        tmpG = handles.UserData.h_rawim.CData(:,:,2);
+        tmpB = handles.UserData.h_rawim.CData(:,:,3);
+        aa = logical(handles.UserData.h_state1.CData(:,:,3));
+        bb = logical(handles.UserData.h_state2.CData(:,:,3));
+        tmpR(aa) = val;
+        tmpB(aa) = val;
+        tmpG(bb) = val;
+        tmpB(bb) = val;
+        overlayim = cat(3, tmpR, tmpG, tmpB);
+        imwrite(overlayim, [basename '_states_overlay.tif'], 'tif');
     end
     
 end
+
 
 %% ===================== Unaltered functions =========================== %%
 
@@ -770,6 +843,12 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
 end
 
 %% --------------------- Callback
+function pathtoimage_Callback(hObject, eventdata, handles)
+% hObject    handle to pathtoimage (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+% Hints: get(hObject,'String') returns contents of pathtoimage as text
+%        str2double(get(hObject,'String')) returns contents of pathtoimage as a double
 
 function run_background_Callback(hObject, eventdata, handles)
 % --- Executes on button press in run_background.
@@ -855,13 +934,6 @@ function sz_minsignal_Callback(hObject, eventdata, handles)
 % Hints: get(hObject,'String') returns contents of sz_minsignal as text
 %        str2double(get(hObject,'String')) returns contents of sz_minsignal as a double
 
-function pathtoimage_Callback(hObject, eventdata, handles)
-% hObject    handle to pathtoimage (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-% Hints: get(hObject,'String') returns contents of pathtoimage as text
-%        str2double(get(hObject,'String')) returns contents of pathtoimage as a double
-
 function run_celloutlines_Callback(hObject, eventdata, handles)
 % --- Executes on button press in run_celloutlines.
 % hObject    handle to run_celloutlines (see GCBO)
@@ -914,10 +986,10 @@ function threshold_Callback(hObject, eventdata, handles)
 
 %% --------------------- ButtonDownFcn
 
-function findcellsbutton_ButtonDownFcn(hObject, eventdata, handles)
+function segmentationbutton_ButtonDownFcn(hObject, eventdata, handles)
 % --- If Enable == 'on', executes on mouse press in 5 pixel border.
-% --- Otherwise, executes on mouse press in 5 pixel border or over findcellsbutton.
-% hObject    handle to findcellsbutton (see GCBO)
+% --- Otherwise, executes on mouse press in 5 pixel border or over segmentationbutton.
+% hObject    handle to segmentationbutton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
@@ -928,9 +1000,14 @@ function updatedisplaybutton_ButtonDownFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-function classifybutton_ButtonDownFcn(hObject, eventdata, handles)
+function classificationbutton_ButtonDownFcn(hObject, eventdata, handles)
 % --- If Enable == 'on', executes on mouse press in 5 pixel border.
-% --- Otherwise, executes on mouse press in 5 pixel border or over classifybutton.
-% hObject    handle to classifybutton (see GCBO)
+% --- Otherwise, executes on mouse press in 5 pixel border or over classificationbutton.
+% hObject    handle to classificationbutton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
+
+
+
+
+
