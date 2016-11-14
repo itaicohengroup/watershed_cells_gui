@@ -68,10 +68,14 @@ Note: This GUI has only been tested on Windows machines. I have no expectation t
 To start the watershed cells GUI, run:
 
 ```
->> [figure_handle, data] = watershed_cells_gui
+>> h = watershed_cells_gui
 ```
 
-This will open the watershed cells GUI in a window with handle `figure_handle` and keep the associated parameters and results in the structure `data`. When the GUI first opens, it should look like this:
+This will open the watershed cells GUI in a window with handle `h`. Within this handle, you can access the current state of the GUI
+data in the `UserData` field. In particular, `h.UserData` is a struct with the field `params`, which holds the current paramers from the
+GUI and `results`, which holds the current analysis results. For example, after the GUI opens, run `h.UserData.params.image.path` to return the path to the image being analyzed, or run `h.UserData.results.segmentation.number` to return the total number of regions found during segmentation. These fields are all populated with default values when the GUI is created, but will update as you use the GUI. 
+
+When the GUI first opens, it should look like this:
 
 <img src="private/quickstart_fig2.png" width="600px"/>
 

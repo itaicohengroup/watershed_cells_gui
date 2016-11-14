@@ -13,26 +13,32 @@
 %   (4) Save the resulting data via the "Save Data" button
 %
 % Usage:
-%   watershed_cells_gui         runs the GUI
-%   h = watershed_cells_gui     also returns the GUI figure handle h
-%   [h, data] = ...             also returns the structure data which
-%                               contains parameters and results of the
-%                               analysis
-%   [h, data, imagedata] = ...  also returns the structure imagedata, which
-%                               includes images used to calclate and
-%                               display the results
+%   h = watershed_cells_gui  
+%       This command runs the GUI and returns the GUI figure handle h.
+%       Within this handle h, you can access the current state of the GUI
+%       data in the 'UserData' field. In particular, h.UserData is a struct
+%       with the field 'params', which holds the current paramers from the
+%       GUI and 'results', which holds the current analysis results. 
+%       For example, run
+%           h.UserData.params.image.path
+%       to return the path to the image being analyzed, or run
+%           h.UserData.results.segmentation.number
+%       to return the total number of regions found during segmentation. 
 %
 % Output:
-%   "Save Data" will prompt the user to select a folder. Then, inside the
-%   folder, the GUI will save:
-%   (1) "<image name>_data.mat", a MATLAB file containing the structure
-%       'data' with processing parameters and results. This can be loaded
-%       into MATLAB later for more detailed post-processing.
-%   (2) "<image name>_display.tif", a TIF image showing the original image
+%   Click "Save Data" to prompt the user to select a folder. Then, inside
+%   the folder, the GUI will save:
+%   (1) "<image name>_params.mat", a MATLAB file containing the structure
+%       'params' with analysis parameters. This can be loaded into MATLAB
+%       later for more detailed post-processing. 
+%   (2) "<image name>_results.mat", a MATLAB file containing the structure
+%       'resutls' with the analysis results. This can be loaded into MATLAB
+%       later for more detailed post-processing.
+%   (3) "<image name>_display.tif", a TIF image showing the original image
 %       with segmented/classified regions outlined. This can be opened and
 %       viewed to manually check the results.
 %
-% See watershed_cells_gui documentation PDF for more information.
+% See watershed_cells_gui README and documentation for more information.
 %
 % Requirements:
 %   MATLAB R2014b or later
@@ -94,6 +100,11 @@ end
 %% ===================== Other functions =========================== %%
 
 %% --------------------- General purpose
+
+function push_data(hObject, handles)
+
+handles.watershed_cells_gui.UserData = handles.data;
+guidata(hObject, handles);
 
 function objs = disable_gui(figure_handle)
 % set objects in figure_handle as inactive (or off, if inactive is not
@@ -161,7 +172,7 @@ function watershed_cells_gui_OpeningFcn(hObject, eventdata, handles, varargin)
 % get default data structures
 [handles.data, handles.displaydata] = initialize_data();
 
-% Choose default command line output
+% Override default command line output
 handles.output = hObject;
 
 % Initialize the plots
@@ -169,7 +180,7 @@ handles.plots = initialize_display(...
     handles.segmentation_axes, handles.classify_axes, handles.hist_axes);
 
 % Update gui data
-guidata(hObject, handles);
+push_data(hObject, handles)
 
 function [data, displaydata] = initialize_data()
 
@@ -251,8 +262,6 @@ function varargout = watershed_cells_gui_OutputFcn(hObject, eventdata, handles)
 
 % Get default command line output from handles structure
 varargout{1} = handles.output;
-varargout{2} = handles.data;
-varargout{3} = handles.displaydata;
 
 %% --------------------- Callbacks - Import Image
 
@@ -328,7 +337,7 @@ handles.data.params.classification.f.new = true;
 handles.data.params.classification.threshold.new = true;
 
 % Update gui data
-guidata(hObject, handles);
+push_data(handles.output, handles)
 
 % Show user we are working on stuff and enable ui objects
 handles.computingsegmentation.Visible = 'off';
@@ -377,7 +386,7 @@ hObject.String = num2str(val);
 handles.data.params.segmentation.equalization_cliplim.value = val;
 
 % Update gui data
-guidata(hObject, handles);
+push_data(handles.output, handles)
 
 function run_equalization_Callback(hObject, eventdata, handles)
 % --- Executes on button press in run_equalization.
@@ -390,7 +399,7 @@ function run_equalization_Callback(hObject, eventdata, handles)
 handles.data.params.segmentation.equalization_cliplim.on = hObject.Value;
 
 % Update gui data
-guidata(hObject, handles);
+push_data(handles.output, handles)
 
 function sz_background_Callback(hObject, eventdata, handles)
 % hObject    handle to sz_background (see GCBO)
@@ -412,7 +421,7 @@ hObject.String = num2str(val);
 handles.data.params.segmentation.background_size.value = val;
 
 % Update gui data
-guidata(hObject, handles);
+push_data(handles.output, handles)
 
 function run_background_Callback(hObject, eventdata, handles)
 % --- Executes on button press in run_background.
@@ -425,7 +434,7 @@ function run_background_Callback(hObject, eventdata, handles)
 handles.data.params.segmentation.background_size.on = hObject.Value;
 
 % Update gui data
-guidata(hObject, handles);
+push_data(handles.output, handles)
 
 function sz_median_Callback(hObject, eventdata, handles)
 % hObject    handle to sz_median (see GCBO)
@@ -447,7 +456,7 @@ hObject.String = num2str(val);
 handles.data.params.segmentation.median_size.value = val;
 
 % Update gui data
-guidata(hObject, handles);
+push_data(handles.output, handles)
 
 function run_median_Callback(hObject, eventdata, handles)
 % --- Executes on button press in run_median.
@@ -460,7 +469,7 @@ function run_median_Callback(hObject, eventdata, handles)
 handles.data.params.segmentation.median_size.on = hObject.Value;
 
 % Update gui data
-guidata(hObject, handles);
+push_data(handles.output, handles)
 
 function sz_gaussian_Callback(hObject, eventdata, handles)
 % hObject    handle to sz_gaussian (see GCBO)
@@ -482,7 +491,7 @@ hObject.String = num2str(val);
 handles.data.params.segmentation.gaussian_sigma.value = val;
 
 % Update gui data
-guidata(hObject, handles);
+push_data(handles.output, handles)
 
 function run_gaussian_Callback(hObject, eventdata, handles)
 % --- Executes on button press in run_gaussian.
@@ -495,7 +504,7 @@ function run_gaussian_Callback(hObject, eventdata, handles)
 handles.data.params.segmentation.gaussian_sigma.on = hObject.Value;
 
 % Update gui data
-guidata(hObject, handles);
+push_data(handles.output, handles)
 
 function sz_minarea_Callback(hObject, eventdata, handles)
 % hObject    handle to sz_minarea (see GCBO)
@@ -517,7 +526,7 @@ hObject.String = num2str(val);
 handles.data.params.segmentation.minimum_area.value = val;
 
 % Update gui data
-guidata(hObject, handles);
+push_data(handles.output, handles)
 
 function run_minarea_Callback(hObject, eventdata, handles)
 % --- Executes on button press in run_minarea.
@@ -530,7 +539,7 @@ function run_minarea_Callback(hObject, eventdata, handles)
 handles.data.params.segmentation.minimum_area.on = hObject.Value;
 
 % Update gui data
-guidata(hObject, handles);
+push_data(handles.output, handles)
 
 function sz_maxarea_Callback(hObject, eventdata, handles)
 % hObject    handle to sz_maxarea (see GCBO)
@@ -552,7 +561,7 @@ hObject.String = num2str(val);
 handles.data.params.segmentation.maximum_area.value = val;
 
 % Update gui data
-guidata(hObject, handles);
+push_data(handles.output, handles)
 
 function run_maxarea_Callback(hObject, eventdata, handles)
 % --- Executes on button press in run_maxarea.
@@ -565,7 +574,7 @@ function run_maxarea_Callback(hObject, eventdata, handles)
 handles.data.params.segmentation.maximum_area.on = hObject.Value;
 
 % Update gui data
-guidata(hObject, handles);
+push_data(handles.output, handles)
 
 function sz_minsignal_Callback(hObject, eventdata, handles)
 % hObject    handle to sz_minsignal (see GCBO)
@@ -587,7 +596,7 @@ hObject.String = num2str(val);
 handles.data.params.segmentation.minimum_signal.value = val;
 
 % Update gui data
-guidata(hObject, handles);
+push_data(handles.output, handles)
 
 function run_minsignal_Callback(hObject, eventdata, handles)
 % --- Executes on button press in run_minsignal.
@@ -600,7 +609,7 @@ function run_minsignal_Callback(hObject, eventdata, handles)
 handles.data.params.segmentation.minimum_signal.on = hObject.Value;
 
 % Update gui data
-guidata(hObject, handles);
+push_data(handles.output, handles)
 
 function segmentationbutton_Callback(hObject, eventdata, handles)
 % --- Executes on button press in segmentationbutton.
@@ -639,7 +648,7 @@ else
 end
 
 % Update gui data
-guidata(hObject, handles);
+push_data(handles.output, handles)
 
 % Show user we are done working on stuff and enable ui objects
 handles.computingsegmentation.Visible = 'off';
@@ -693,7 +702,7 @@ handles.data.params.classification.f.fun = fun;
 handles.data.params.classification.f.new = true;
 
 % Update gui data
-guidata(hObject, handles);
+push_data(handles.output, handles)
 
 function threshold_Callback(hObject, eventdata, handles)
 % hObject    handle to threshold (see GCBO)
@@ -713,7 +722,7 @@ handles.data.params.classification.threshold.value = val;
 handles.data.params.classification.threshold.new = true;
 
 % Update gui data
-guidata(hObject, handles);
+push_data(handles.output, handles)
 
 function otsuthresh_Callback(hObject, eventdata, handles)
 % --- Executes on button press in otsuthresh.
@@ -734,7 +743,7 @@ else
 end
 
 % Update gui data
-guidata(hObject, handles);
+push_data(handles.output, handles)
 
 function classificationbutton_Callback(hObject, eventdata, handles)
 % --- Executes on button press in classificationbutton.
@@ -803,7 +812,7 @@ if fnew || tnew
 end
 
 % Update gui data
-guidata(hObject, handles);
+push_data(handles.output, handles)
 
 % Show user we are done working on stuff and enable ui objects
 handles.computingclassification.Visible = 'off';
@@ -863,9 +872,11 @@ if PathName
     end
     basename = fullfile(PathName, basename);
     
-    % save data as a mat file
-    data = handles.data;
-    save([basename '_data.mat'], 'data', '-mat');
+    % save params and results as mat files
+    params = handles.data.params;
+    results = handles.data.results;
+    save([basename '_params.mat'], 'params', '-mat');
+    save([basename '_results.mat'], 'results', '-mat');
     
     % save image showing the classification output
     im = handles.displaydata.image.color;
