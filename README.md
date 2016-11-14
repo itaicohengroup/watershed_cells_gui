@@ -1,5 +1,5 @@
-# Quick Start Guide for Watershed Cells GUI
-Lena Bartell
+# Watershed Cells GUI
+by Lena R. Bartell
 
 ## Table of contents
 
@@ -8,16 +8,15 @@ Lena Bartell
     * [Download the GUI files](#download-the-gui-files)
     * [Add the GUI folder to your MATLAB path](#add-the-gui-folder-to-your-matlab-path)
     * [Check your MATLAB version](#check-your-matlab-version)
-* [Basic usage](#basic-usage)
+* [Usage](#usage)
     * [Start the GUI](#start-the-gui)
-    * [Set parameters](#set-parameters)
-    * [Image analysis process](#image-analysis-process)
-    * [Display the result](#display-the-result)
-    * [Save the result](#save-the-result)
-* [More information](#save-the-result)
-    * [Algorithm details](#algorithm-details)
+    * [Import Image](#import-image)
+    * [Segmentation](#segmentation)
+    * [Classification](#classification)
+    * [Save Data](#save-data)
+* [More Information](#more-information)
+    * [Algorithm Details](#algorithm-details)
     * [Feedback](#feedback)
-
 
 ## Installation
 
@@ -28,8 +27,10 @@ Download the GUI (graphical user interface) files to a folder and save it somewh
 ```
 watershed_cells_gui.m
 watershed_cells_gui.fig
-private\marker_watershed.m
-private\find_cells.m
+private\apply_function.m
+private\apply_threshold.m
+private\check_image.m
+private\find_regions.m
 ```
 
 You may also want to include the provided example image, `test.tiff`.
@@ -60,39 +61,44 @@ Image Processing Toolbox                  Version 9.4         (R2016a)
 Note: This GUI has only been tested on Windows machines. I have no expectation that it will work on other operating systems.
 
 
-## Basic usage
+## Usage
 
 ### Start the GUI
 
 To start the watershed cells GUI, run:
 
 ```
->> figure_handle = watershed_cells_gui
+>> [figure_handle, data] = watershed_cells_gui
 ```
 
-This will open the watershed cells GUI in a window. It should look like this:
+This will open the watershed cells GUI in a window with handle `figure_handle` and keep the associated parameters and results in the structure `data`. When the GUI first opens, it should look like this:
 
-<img src="private/quickstart_fig2.png" width="400px"/>
+<img src="private/quickstart_fig2.png" width="600px"/>
 
 _Figure 2. watershed_cell_gui initial appearance_
 
-### Set parameters
+### Import Image
 
-In the GUI, set the parameters by editing the text boxes. To skip a particular step in the analysis, un-check the tick box next to the associated parameter. In general, you will need a lot of trial-and-error to pick the best parameters for your image. However, there are some rough guidelines below.
+In the `Import Image` panel, click the `Browse` button to open a dialog box and select the image you want to process. To follow this example, use the included `test.tiff` file. This will then load and display the selected image. The `Segmentation` panel shows a grayscale version of the image used for finding regions, whle the `Classification` panel shows a full color version used for segmentation. At this point, the GUI should look like Figure 3. You can use the toolbar buttons to zoom/pan and inspect the plots.
+
+<img src="private/quickstart_fig3.png" width="600px"/>
+
+_Figure 2. watershed_cell_gui after importing an image_
+
+### Segmentation
+
+In the GUI, set the segmentation parameters by editing the text boxes in the `Segmentation` panel. To skip a particular step in the analysis, un-check the tick box next to the associated parameter. In general, you will need trial-and-error to pick the best parameters for your image. However, there are some rough guidelines below.
 The parameters (and guidelines) are:
 
-- *Path to image*: The path to the image file, including name and extension. If only a partial path is provided (i.e. no drive letter or folders, as Fig. 2), make sure the image file is in your current folder or MATLAB’s path (see Fig. 1). If the path is invalid, the program will pop-up with a dialog box and ask you to select the file. 
-- *Equalization clip limit*: The “Clip Limit” parameter passed to the adaptive histogram equalization filter. This is a number between 0 and 1, but values around 0.01 are usually best. See MATLAB’s function adapthiseq for more information.
+- *Equalization cliplim*: This is the “Clip Limit” parameter passed to the adaptive histogram equalization filter. This is a number between 0 and 1, but values around 0.01 are usually best. See MATLAB’s function adapthiseq for more information.
 - *Background size*: Background subtraction is performed using a median filter of this size (units: pixels). This should be an odd positive integer that is much larger that the diameter of your cells/objects. Background subtraction is usually the slowest step in the process, so skip it if you don’t need it. Generally, background subtraction important for epi-fluorescence images (due to unwanted out-of-focus/background signal), but optional for confocal images (because the confocal pinhole already blocks much of this background).
 - *Median size*: The size of a separate median filter used for smoothing / reducing noise (units: pixels). This should be roughly the same size or smaller than the cells you are trying to find.
-- *Gaussian radius*: The radius of a Gaussian filter also used for smoothing / reducing noise (units: pixels). If the signal is discontinuous across an individual cell (e.g. if staining individual organelles), this radius should be approximately the radius of a cell. If the signal is relatively continuous across the cell (e.g. standard live/dead staining assay), this can be smaller. Values smaller than 0.5 px are not recommended. 
+- *Gaussian radius*: The radius of a Gaussian filter, which is also used for smoothing / reducing noise (units: pixels). If the signal is discontinuous across an individual cell (e.g. if staining individual organelles rather than the cytoplasm), this radius should be approximately the radius of a cell. If the signal is relatively continuous across the cell (e.g. standard live/dead staining assay), this can be smaller. Values smaller than 0.5 px are not recommended. 
 - *Minimum area*: After finding objects/cells, discard any objects that have fewer than this many pixels in their area (units: pixels). This should be approximately r2, where r is the average cell radius in pixels.
 - *Maximum area*: Also discard any objects that have more than this many pixels in their area. This should be approximately (2r)2 to (5r)2, where r is the average cell radius in pixels.
 - *Minimum signal*: Also discard any objects that have an average signal-intensity smaller than this value (units: fraction of intensity range). This value is expressed as a fraction of the full range of possible intensities, so it should be a number between 0 and 1 (rather than 0 and 255, for example). This value will vary drastically based on imaging settings, image quality, other parameter values, and your desired output, so I won’t provide any guidelines.
 
-### Image analysis process
-
-Once parameters are set, click “Find Cells” to run the image analysis process and display the result. Briefly, the image analysis procedure is:
+Once parameters are set, click `Run Segmentation` to run the image analysis process and display the result. Briefly, the image analysis procedure is:
 
 1. Pre-processing
   1. Import image 
@@ -108,34 +114,36 @@ Once parameters are set, click “Find Cells” to run the image analysis proces
   2. Remove cells that are too big 
   3. Remove cells that are too dim 
 
-### Display the result
+Once the image segmentation is complete, regions that are found will be circled in yellow on the plot, as in Figure 4. You can use the toolbar buttons to zoom/pan and inspect the plots.
 
-Once the image analysis process is complete, the result will display on the right side of the window. The display includes the raw image. On top of the raw image is a second image showing just the outlines of the cells that were segmented. The “Cell outline alpha” value controls how bright these boundaries appear; 0 means they are not visible, 1 is the brightest. Additionally, the total cell count will appear at the top of the image.
+<img src="private/quickstart_fig4.png" width="600px"/>
 
-After the results are displayed, you can explore the display using the zoom and pan buttons from the toolbar at the top of the window. After analysis your GUI should look something like this:
- 
-<img src="private/quickstart_fig3.png" width="400px"/>
+_Figure 4. watershed_cell_gui segmentation result. Note that the number of regions found is also shown on the screen._
 
-_Figure 3. watershed_cell_gui appearance after running finding cells._
+### Classification
 
+To classify regions, the GUI applies a function, `f(R,G,B)` to each region, where R, G, and B, are, respectively, the list of red, green, and blue pixel values in the given region. This function should return one scalar number for each region. This number will then be thresholded according to the `threshold` parameter. If `Auto threshold (Otsu)` is selected, then the threshold value will be chosen automatically based on Otsu's thresholding scheme.
 
-### Save the result
+Enter the function definition and threshold (if manual) in the text boxes. The function may be a custom function and/or may call other Matlab and user-defined functions. Then, click `Run Classification` to run the classification process and display the results.
 
-To save the parameters and resulting data to at MATLAB data (.mat) file, click “Save Data”. This will open a dialog box asking the user to choose where to save it. After saving, you can manually load the resulting .mat file into the MATLAB workspace. 
+Onces the classification is complete, the regions with f values above and below the threshold will be outlined in magenta and cyan, respectively. Also, the GUI shows a histogram of the f values from all the segmented regions. You can use the toolbar buttons to zoom/pan and inspect the plots. At this point, the GUI should look like Figure 5. You can use the toolbar buttons to zoom/pan and inspect the plots.
 
-This output .mat file contains the structure “data” which has the following fields:
+<img src="private/quickstart_fig5.png" width="600px"/>
 
-* `raw_image`: The raw image matrix (before any processing), as read from the input file.
-* `params`: A structure containing all the analysis parameters described above. A parameter value of 0 indicates that the associated step in the analysis was skipped.
-* `cells.label_matrix`: A label matrix specifying the segmentation output. This label matrix is the same size as the original image. The elements of the label matrix are integer values. Pixels labeled 0 are the background, pixels labeled 1 make up the first object/cell, pixels labeled 2 make up the second object/cell, etc. For more information, see the MATLAB documentation, especially for the function labelmatrix.
-* `cells.CC`: A connected components structure specifying the segmentation output. This contains the same information as label_matrix, just in a different format. For more information about a connected components structure, see the MATLAB documentation, especially for the function bwconncomp.
+_Figure 5. watershed_cell_gui classification result. Note that the number of regions above/below the threshold (state 1 / state 2) is also shown on the screen._
 
-## More information
+### Save Data
 
-### Algorithm details
+Click `Save Data` to save the results. This will open a dialog box asking the user to choose a folder in which to save the results. In this folder, the GUI will save two files (note that both files use the base name from the image file):
+1. `<image name>_data.mat`: A MATLAB data file containing the structure 'data'. This is the same structure output at the command line (i.e. `data` from `[h, data] = ...`). This structure contains the field `params`, which specifies the parameters from the GUI's current state, and `results`, which contains the results of the segmentation and classification.
+2. `<image name>_display.tif`: A TIF image file showing the imported image with all regions outlined based on their state (above threshold = magenta, below threshold = cyan, equal to threshold = yellow). Open this image to visually check the results.
 
-The “meat” of the processing algorithm is encoded in the two private functions find_cells.m and marker_watershed.m. If you would like to alter the processing algorithm or use it externally or programmatically, start from those functions.
+## More Information
+
+### Algorithm Details
+
+The “meat” of the segmetnation algorithm is encoded in the private function `private\find_regions.m`. If you would like to alter the processing algorithm or use it externally or programmatically, start there. Similarly, the "meat" of the classification process is contained in `private\apply_function.m` and `private\apply_threshold.m`.
 
 ### Feedback
 
-I welcome any feedback, good or bad. If you run across any errors or issues, please email me the details and I will try to help. Similarly, please let me know if you find this GUI useful. Good news is always appreciated! :)
+I welcome feedback. If you run across any errors or issues, please email me the details and I will try to help. Similarly, please let me know if you find this GUI useful. Good news is always appreciated! :)
