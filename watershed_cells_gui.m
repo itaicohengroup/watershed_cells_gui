@@ -76,7 +76,7 @@ function varargout = watershed_cells_gui(varargin)
 
 % Edit the above text to modify the response to help watershed_cells_gui
 
-% Last Modified by GUIDE v2.5 13-Nov-2016 10:59:43
+% Last Modified by GUIDE v2.5 14-Nov-2016 22:32:30
 
 %% ========== Begin initialization code - DO NOT EDIT ================== %%
 gui_Singleton = 0;
@@ -179,6 +179,9 @@ handles.output = hObject;
 handles.plots = initialize_display(...
     handles.segmentation_axes, handles.classify_axes, handles.hist_axes);
 
+% Initialize the batch process
+handles.batch = [];
+
 % Update gui data
 push_data(hObject, handles)
 
@@ -263,6 +266,30 @@ function varargout = watershed_cells_gui_OutputFcn(hObject, eventdata, handles)
 % Get default command line output from handles structure
 varargout{1} = handles.output;
 
+function watershed_cells_gui_DeleteFcn(hObject, eventdata, handles)
+% --- Executes during object deletion, before destroying properties.
+% hObject    handle to watershed_cells_gui (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% --- Executes when user attempts to close watershed_cells_gui.
+function watershed_cells_gui_CloseRequestFcn(hObject, eventdata, handles)
+% hObject    handle to watershed_cells_gui (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% ask the user if they really want to quit
+button = questdlg('Are you sure you want to quit?','Close GUI','Yes','No', 'Yes');
+
+switch button
+    case 'Yes'
+        if isa(handles.batch, 'handle')
+            delete(handles.batch)
+        end
+        delete(hObject);
+    otherwise
+end
+
 %% --------------------- Callbacks - Import Image
 
 function browsebutton_Callback(hObject, eventdata, handles)
@@ -278,8 +305,8 @@ objs = disable_gui(handles.watershed_cells_gui);
 drawnow
 
 % get the file path
-[filename, pathname] = uigetfile({'*.tif;*.tiff'}, 'select image to analyze');
-if filename
+[filename, pathname, success] = uigetfile({'*.tif;*.tiff'}, 'select image to analyze');
+if success
     
     % construct the full path
     impath = [pathname filename];
@@ -914,9 +941,33 @@ handles.computingclassification.Visible = 'off';
 set(objs, 'Enable', 'on');
 drawnow
 
+%% --------------------- Callbacks - Batch Process
+
+function batchprocessbutton_Callback(hObject, eventdata, handles)
+% --- Executes on button press in batchprocessbutton.
+% hObject    handle to batchprocessbutton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Temporarily disable ui objects
+objs = disable_gui(handles.watershed_cells_gui);
+drawnow
 
 
+data.params = handles.watershed_cells_gui.UserData.params;
+tmp = initialize_data();
+data.results = tmp.results;
 
+
+handles.batch = batch_process(data);
+
+% Update gui data
+push_data(handles.output, handles)
+
+uiwait(handles.batch)
+
+% Enable ui objects
+set(findobj(objs), 'Enable', 'on');
 
 
 
