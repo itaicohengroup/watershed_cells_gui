@@ -969,6 +969,7 @@ drawnow
 if nargin > 3
     % Use the given basename
     basename = varargin{1};
+    valid = true;
     
 else
     % bring up a dialog box to pick the save name/location
@@ -981,11 +982,14 @@ else
             basename = 'output';
         end
         basename = fullfile(PathName, basename);
+        valid = true;
+    else
+        valid = false;
     end
 end
 
 % save the data and classification display image
-if basename
+if valid
         
     % save params and results as mat files
     params = handles.output.UserData.params;
