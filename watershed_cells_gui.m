@@ -732,10 +732,8 @@ function handles = segmentationbutton_Callback(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 
-
 % Show user we are working on stuff and temporarily disable ui objects
 handles.computingsegmentation.Visible = 'on';
-handles.computingclassification.Visible = 'on';
 objs = disable_gui(handles.watershed_cells_gui);
 drawnow
 
@@ -770,7 +768,6 @@ guidata(hObject, handles)
 % Show user we are done working on stuff and enable ui objects
 set(objs, 'Enable', 'on');
 handles.computingsegmentation.Visible = 'off';
-handles.computingclassification.Visible = 'off';
 drawnow
 
 function handles = show_segmentation(handles)
