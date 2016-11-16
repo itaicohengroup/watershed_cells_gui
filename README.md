@@ -39,7 +39,7 @@ You may also want to include the provided example image, `test.tiff`.
 
 In MATLAB, go to the HOME tab and, in the ENVIRONMENT section, click “Set Path”. In the window that opens, click “Add Folder…” and add the folder containing the GUI files to your path.
 
-<img src="private/quickstart_fig1.png" width="500px"/>
+<img src="D:/Users/Lena/Desktop/Dropbox/MATLAB/watershed_cells_gui/private/quickstart_fig1.png" width="500px"/>
 
 _Figure 1. MATLAB window highlighting Set Path (red arrow) and current folder (blue arrow)._
 
@@ -77,7 +77,7 @@ GUI and `results`, which holds the current analysis results. For example, after 
 
 When the GUI first opens, it should look like this:
 
-<img src="private/quickstart_fig2.png" width="600px"/>
+<img src="D:/Users/Lena/Desktop/Dropbox/MATLAB/watershed_cells_gui/private/quickstart_fig2.png" width="600px"/>
 
 _Figure 2. watershed_cell_gui initial appearance_
 
@@ -85,7 +85,7 @@ _Figure 2. watershed_cell_gui initial appearance_
 
 In the `Select Images` panel, click the `Add` button to open a dialog box and select an image you want to process. To follow this example, use the included `test.tiff` file. Click `Load Selected` to import and display the selected image. The `Segmentation` panel shows a grayscale version of the image used for finding regions, whle the `Classification` panel shows a full color version used for segmentation. At this point, the GUI should look like Figure 3. You can use the toolbar buttons to zoom/pan and inspect the images.
 
-<img src="private/quickstart_fig3.png" width="600px"/>
+<img src="D:/Users/Lena/Desktop/Dropbox/MATLAB/watershed_cells_gui/private/quickstart_fig3.png" width="600px"/>
 
 _Figure 2. watershed_cell_gui after importing an image_
 
@@ -121,7 +121,7 @@ Once parameters are set, click `Run Segmentation` to run the image analysis proc
 
 Once the image segmentation is complete, regions that are found will be circled in yellow on the plot, as in Figure 4. You can use the toolbar buttons to zoom/pan and inspect the plots.
 
-<img src="private/quickstart_fig4.png" width="600px"/>
+<img src="D:/Users/Lena/Desktop/Dropbox/MATLAB/watershed_cells_gui/private/quickstart_fig4.png" width="600px"/>
 
 _Figure 4. watershed_cell_gui segmentation result. Note that the number of regions found is also shown on the screen._
 
@@ -133,7 +133,7 @@ Enter the function definition and threshold (if manual) in the text boxes. The f
 
 Onces the classification is complete, the regions with f values above and below the threshold will be outlined in magenta and cyan, respectively. Also, the GUI shows a histogram of the f values from all the segmented regions. You can use the toolbar buttons to zoom/pan and inspect the plots. At this point, the GUI should look like Figure 5. You can use the toolbar buttons to zoom/pan and inspect the plots.
 
-<img src="private/quickstart_fig5.png" width="600px"/>
+<img src="D:/Users/Lena/Desktop/Dropbox/MATLAB/watershed_cells_gui/private/quickstart_fig5.png" width="600px"/>
 
 _Figure 5. watershed_cell_gui classification result. Note that the number of regions above/below the threshold (state 1 / state 2) is also shown on the screen._
 
