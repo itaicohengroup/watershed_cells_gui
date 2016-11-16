@@ -10,10 +10,11 @@ by Lena R. Bartell
     * [Check your MATLAB version](#check-your-matlab-version)
 * [Usage](#usage)
     * [Start the GUI](#start-the-gui)
-    * [Import Image](#import-image)
+    * [Select Images](#select-images)
     * [Segmentation](#segmentation)
     * [Classification](#classification)
     * [Save Data](#save-data)
+    * [Batch Process](#batch-process)
 * [More Information](#more-information)
     * [Algorithm Details](#algorithm-details)
     * [Feedback](#feedback)
@@ -29,7 +30,6 @@ watershed_cells_gui.m
 watershed_cells_gui.fig
 private\apply_function.m
 private\apply_threshold.m
-private\check_image.m
 private\find_regions.m
 ```
 
@@ -81,9 +81,9 @@ When the GUI first opens, it should look like this:
 
 _Figure 2. watershed_cell_gui initial appearance_
 
-### Import Image
+### Select Images
 
-In the `Import Image` panel, click the `Browse` button to open a dialog box and select the image you want to process. To follow this example, use the included `test.tiff` file. This will then load and display the selected image. The `Segmentation` panel shows a grayscale version of the image used for finding regions, whle the `Classification` panel shows a full color version used for segmentation. At this point, the GUI should look like Figure 3. You can use the toolbar buttons to zoom/pan and inspect the plots.
+In the `Select Images` panel, click the `Add` button to open a dialog box and select an image you want to process. To follow this example, use the included `test.tiff` file. Click `Load Selected` to import and display the selected image. The `Segmentation` panel shows a grayscale version of the image used for finding regions, whle the `Classification` panel shows a full color version used for segmentation. At this point, the GUI should look like Figure 3. You can use the toolbar buttons to zoom/pan and inspect the images.
 
 <img src="private/quickstart_fig3.png" width="600px"/>
 
@@ -92,9 +92,10 @@ _Figure 2. watershed_cell_gui after importing an image_
 ### Segmentation
 
 In the GUI, set the segmentation parameters by editing the text boxes in the `Segmentation` panel. To skip a particular step in the analysis, un-check the tick box next to the associated parameter. In general, you will need trial-and-error to pick the best parameters for your image. However, there are some rough guidelines below.
+
 The parameters (and guidelines) are:
 
-- *Equalization cliplim*: This is the “Clip Limit” parameter passed to the adaptive histogram equalization filter. This is a number between 0 and 1, but values around 0.01 are usually best. See MATLAB’s function adapthiseq for more information.
+- *Equalization cliplim*: This is the “Clip Limit” parameter passed to the adaptive histogram equalization filter. This is a number between 0 and 1, but values around 0.01 are usually best. See MATLAB’s function `adapthiseq` for more information.
 - *Background size*: Background subtraction is performed using a median filter of this size (units: pixels). This should be an odd positive integer that is much larger that the diameter of your cells/objects. Background subtraction is usually the slowest step in the process, so skip it if you don’t need it. Generally, background subtraction important for epi-fluorescence images (due to unwanted out-of-focus/background signal), but optional for confocal images (because the confocal pinhole already blocks much of this background).
 - *Median size*: The size of a separate median filter used for smoothing / reducing noise (units: pixels). This should be roughly the same size or smaller than the cells you are trying to find.
 - *Gaussian radius*: The radius of a Gaussian filter, which is also used for smoothing / reducing noise (units: pixels). If the signal is discontinuous across an individual cell (e.g. if staining individual organelles rather than the cytoplasm), this radius should be approximately the radius of a cell. If the signal is relatively continuous across the cell (e.g. standard live/dead staining assay), this can be smaller. Values smaller than 0.5 px are not recommended. 
@@ -138,9 +139,15 @@ _Figure 5. watershed_cell_gui classification result. Note that the number of reg
 
 ### Save Data
 
-Click `Save Data` to save the results. This will open a dialog box asking the user to choose a folder in which to save the results. In this folder, the GUI will save two files (note that both files use the base name from the image file):
+Click `Save Current Data` to save the results currently shown in the GUI. This will open a dialog box asking the user to choose a folder in which to save the results. In this folder, the GUI will save two files (note that both files use the base name from the image file):
 1. `<image name>_data.mat`: A MATLAB data file containing the structure 'data'. This is the same structure output at the command line (i.e. `data` from `[h, data] = ...`). This structure contains the field `params`, which specifies the parameters from the GUI's current state, and `results`, which contains the results of the segmentation and classification.
 2. `<image name>_display.tif`: A TIF image file showing the imported image with all regions outlined based on their state (above threshold = magenta, below threshold = cyan, equal to threshold = yellow). Open this image to visually check the results.
+
+### Batch Process
+
+You can also use the GUI to automatically process multiple images with the same parameters. To do this first use the `Add` button to select all the files you wish to process. Next, setup all the parameters in both the `Segmentation` and `Classification` panels. Finally, click `Batch Process` to analyze all the listed images. This will loop through each listed image file, load it, segment it, classify it, and save resulting data, before moving on to the next image on the list. 
+
+As the bath process continues, the GUI plots will dynamically update to show the current processing results. While the batch process is running click the `Cancel` button to stop the analysis. This will finish completing the current calculation step and then cancel all remaining steps. Any unsaved data will be lost.
 
 ## More Information
 
