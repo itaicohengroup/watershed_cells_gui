@@ -5,9 +5,8 @@ by Lena R. Bartell
 
 * [Table of contents](#table-of-contents)
 * [Installation](#installation)
-    * [Download the GUI files](#download-the-gui-files)
-    * [Add the GUI folder to your MATLAB path](#add-the-gui-folder-to-your-matlab-path)
-    * [Check your MATLAB version](#check-your-matlab-version)
+    * [Option 1: MATLAB-Cased GUI](#option-1-matlab-based-gui)
+    * [Option 2: Standalone Application](#option-2-standalone-application)
 * [Usage](#usage)
     * [Start the GUI](#start-the-gui)
     * [Select Images](#select-images)
@@ -21,7 +20,13 @@ by Lena R. Bartell
 
 ## Installation
 
-### Download the GUI files
+The watershed_cells_gui can be implemented in two ways:
+1. As a GUI run and accessed from MATLAB 
+2. As a standalone application installed on a Windows machine
+
+### Option 1: MATLAB-Based GUI
+
+#### Download the GUI files
 
 Download the GUI (graphical user interface) files to a folder and save it somewhere. The folder should contain the following files:
 
@@ -35,7 +40,7 @@ private\find_regions.m
 
 You may also want to include the provided example image, `test.tiff`.
 
-### Add the GUI folder to your MATLAB path
+#### Add the GUI folder to your MATLAB path
 
 In MATLAB, go to the HOME tab and, in the ENVIRONMENT section, click “Set Path”. In the window that opens, click “Add Folder…” and add the folder containing the GUI files to your path.
 
@@ -43,7 +48,7 @@ In MATLAB, go to the HOME tab and, in the ENVIRONMENT section, click “Set Path
 
 _Figure 1. MATLAB window highlighting Set Path (red arrow) and current folder (blue arrow)._
 
-### Check your MATLAB version
+#### Check your MATLAB version
 
 This GUI will only work on MATLAB R2014b or later and requires the Image Processing Toolbox. To check your version of MATLAB, enter `ver` into the Command Window. You should get something that looks like this:
 
@@ -60,6 +65,15 @@ Image Processing Toolbox                  Version 9.4         (R2016a)
 
 Note: This GUI has only been tested on Windows machines. I have no expectation that it will work on other operating systems.
 
+### Option 2: Standalone Application
+
+Download and run the application installer: `watershed_cells_gui_installer_mcr.exe` (be patient, it may take a few minutes to open). This will open a MATLAB-based installer to guide you through the installation process, as in Figure 2. Use this window to install the application and other related requirements, including the MATLAB Runtime.
+
+<img src="private/quickstart_fig2.png" width="500px"/>
+
+_Figure 2. MATLAB Application installation window._
+
+After everything has finished installing, go to the installation folder. Now you can use the application by running the executable file `application\watershed_cell_gui.exe`. The installation also includes a test image, `test.tiff`, and a documentation PDF, `README.pdf`. You may wish to create a shortcut of `watershed_cell_gui.exe` somewhere else, like your Windows Desktop.
 
 ## Usage
 
@@ -77,17 +91,17 @@ GUI and `results`, which holds the current analysis results. For example, after 
 
 When the GUI first opens, it should look like this:
 
-<img src="private/quickstart_fig2.png" width="600px"/>
+<img src="private/quickstart_fig3.png" width="600px"/>
 
-_Figure 2. watershed_cell_gui initial appearance_
+_Figure 3. watershed_cell_gui initial appearance_
 
 ### Select Images
 
-In the `Select Images` panel, click the `Add` button to open a dialog box and select an image you want to process. To follow this example, use the included `test.tiff` file. Click `Load Selected` to import and display the selected image. The `Segmentation` panel shows a grayscale version of the image used for finding regions, whle the `Classification` panel shows a full color version used for segmentation. At this point, the GUI should look like Figure 3. You can use the toolbar buttons to zoom/pan and inspect the images.
+In the `Select Images` panel, click the `Add` button to open a dialog box and select an image you want to process. To follow this example, use the included `test.tiff` file. Click `Load Selected` to import and display the selected image. The `Segmentation` panel shows a grayscale version of the image used for finding regions, whle the `Classification` panel shows a full color version used for segmentation. At this point, the GUI should look like Figure 4. You can use the toolbar buttons to zoom/pan and inspect the images.
 
-<img src="private/quickstart_fig3.png" width="600px"/>
+<img src="private/quickstart_fig4.png" width="600px"/>
 
-_Figure 2. watershed_cell_gui after importing an image_
+_Figure 4. watershed_cell_gui after importing an image_
 
 ### Segmentation
 
@@ -119,11 +133,11 @@ Once parameters are set, click `Run Segmentation` to run the image analysis proc
   2. Remove cells that are too big 
   3. Remove cells that are too dim 
 
-Once the image segmentation is complete, regions that are found will be circled in yellow on the plot, as in Figure 4. You can use the toolbar buttons to zoom/pan and inspect the plots.
+Once the image segmentation is complete, regions that are found will be circled in yellow on the plot, as in Figure 5. You can use the toolbar buttons to zoom/pan and inspect the plots.
 
-<img src="private/quickstart_fig4.png" width="600px"/>
+<img src="private/quickstart_fig5.png" width="600px"/>
 
-_Figure 4. watershed_cell_gui segmentation result. Note that the number of regions found is also shown on the screen._
+_Figure 5. watershed_cell_gui segmentation result. Note that the number of regions found is also shown on the screen._
 
 ### Classification
 
@@ -131,11 +145,11 @@ To classify regions, the GUI applies a function, `f(R,G,B)` to each region, wher
 
 Enter the function definition and threshold (if manual) in the text boxes. The function may be a custom function and/or may call other Matlab and user-defined functions. Then, click `Run Classification` to run the classification process and display the results.
 
-Onces the classification is complete, the regions with f values above and below the threshold will be outlined in magenta and cyan, respectively. Also, the GUI shows a histogram of the f values from all the segmented regions. You can use the toolbar buttons to zoom/pan and inspect the plots. At this point, the GUI should look like Figure 5. You can use the toolbar buttons to zoom/pan and inspect the plots.
+Onces the classification is complete, the regions with f values above and below the threshold will be outlined in magenta and cyan, respectively. Also, the GUI shows a histogram of the f values from all the segmented regions. You can use the toolbar buttons to zoom/pan and inspect the plots. At this point, the GUI should look like Figure 6. You can use the toolbar buttons to zoom/pan and inspect the plots.
 
-<img src="private/quickstart_fig5.png" width="600px"/>
+<img src="private/quickstart_fig6.png" width="600px"/>
 
-_Figure 5. watershed_cell_gui classification result. Note that the number of regions above/below the threshold (state 1 / state 2) is also shown on the screen._
+_Figure 6. watershed_cell_gui classification result. Note that the number of regions above/below the threshold (state 1 / state 2) is also shown on the screen._
 
 ### Save Data
 
