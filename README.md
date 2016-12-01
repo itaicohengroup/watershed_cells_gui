@@ -65,6 +65,18 @@ Image Processing Toolbox                  Version 9.4         (R2016a)
 
 Note: This GUI has only been tested on Windows machines. I have no expectation that it will work on other operating systems.
 
+#### Start the GUI
+
+To start the watershed cells GUI, run:
+
+```
+>> h = watershed_cells_gui
+```
+
+This will open the watershed cells GUI in a window with handle `h`. Within this handle, you can access the current state of the GUI
+data in the `UserData` field. In particular, `h.UserData` is a struct with the field `params`, which holds the current paramers from the
+GUI and `results`, which holds the current analysis results. For example, after the GUI opens, run `h.UserData.params.image.path` to return the path to the image being analyzed, or run `h.UserData.results.segmentation.number` to return the total number of regions found during segmentation. These fields are all populated with default values when the GUI is created, but will update as you use the GUI. 
+
 ### Option 2: Standalone Application
 
 Download and run the application installer: `watershed_cells_gui_installer_mcr.exe` (be patient, it may take a few minutes to open). This will open a MATLAB-based installer to guide you through the installation process, as in Figure 2. Use this window to install the application and other related requirements, including the MATLAB Runtime.
@@ -76,18 +88,6 @@ _Figure 2. MATLAB Application installation window._
 After everything has finished installing, go to the installation folder. Now you can use the application by running the executable file `application\watershed_cell_gui.exe`. The installation also includes a test image, `test.tiff`, and a documentation PDF, `README.pdf`. You may wish to create a shortcut of `watershed_cell_gui.exe` somewhere else, like your Windows Desktop.
 
 ## Usage
-
-### Start the GUI
-
-To start the watershed cells GUI, run:
-
-```
->> h = watershed_cells_gui
-```
-
-This will open the watershed cells GUI in a window with handle `h`. Within this handle, you can access the current state of the GUI
-data in the `UserData` field. In particular, `h.UserData` is a struct with the field `params`, which holds the current paramers from the
-GUI and `results`, which holds the current analysis results. For example, after the GUI opens, run `h.UserData.params.image.path` to return the path to the image being analyzed, or run `h.UserData.results.segmentation.number` to return the total number of regions found during segmentation. These fields are all populated with default values when the GUI is created, but will update as you use the GUI. 
 
 When the GUI first opens, it should look like this:
 
