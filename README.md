@@ -175,7 +175,7 @@ The “meat” of the segmentation algorithm is encoded in the private function 
 
 ### Authors
 
-This algorithm and GUI was written by Lena Bartell during the completion of her PhD thesis in Prof. Itai Cohen's group at Cornell University. Lena was generously supported by and NSF GRFP DGE-1144153 and NIH 1F31-AR069977. 
+This algorithm and GUI was written by Lena Bartell during the completion of her PhD thesis in Prof. Itai Cohen's group at Cornell University. Lena was generously supported by NSF GRFP DGE-1144153 and NIH 1F31-AR069977. 
 
 We welcome feedback. Please email Lena with any questions, comments, suggestions, or bugs. 
 
