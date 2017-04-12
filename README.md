@@ -1,11 +1,11 @@
 # Watershed Cells GUI
-by Lena R. Bartell
+by [Lena R. Bartell, Itai Cohen Group, Cornell Unviersity](#authors)
 
 ## Table of contents
 
 * [Table of contents](#table-of-contents)
 * [Installation](#installation)
-    * [Option 1: MATLAB-Cased GUI](#option-1-matlab-based-gui)
+    * [Option 1: MATLAB-Based GUI](#option-1-matlab-based-gui)
     * [Option 2: Standalone Application](#option-2-standalone-application)
 * [Usage](#usage)
     * [Start the GUI](#start-the-gui)
@@ -14,9 +14,10 @@ by Lena R. Bartell
     * [Classification](#classification)
     * [Save Data](#save-data)
     * [Batch Process](#batch-process)
+    * [Note](#note)
 * [More Information](#more-information)
-    * [Algorithm Details](#algorithm-details)
-    * [Feedback](#feedback)
+    * [Authors](#authors)
+    * [Copyright](#copyright)
 
 ## Installation
 
@@ -74,10 +75,12 @@ To start the watershed cells GUI, run:
 ```
 
 This will open the watershed cells GUI in a window with handle `h`. Within this handle, you can access the current state of the GUI
-data in the `UserData` field. In particular, `h.UserData` is a struct with the field `params`, which holds the current paramers from the
+data in the `UserData` field. In particular, `h.UserData` is a struct with the field `params`, which holds the current parameters from the
 GUI and `results`, which holds the current analysis results. For example, after the GUI opens, run `h.UserData.params.image.path` to return the path to the image being analyzed, or run `h.UserData.results.segmentation.number` to return the total number of regions found during segmentation. These fields are all populated with default values when the GUI is created, but will update as you use the GUI. 
 
 ### Option 2: Standalone Application
+
+_Note: The standalone application is not currently available._
 
 Download and run the application installer: `watershed_cells_gui_installer_mcr.exe` (be patient, it may take a few minutes to open). This will open a MATLAB-based installer to guide you through the installation process, as in Figure 2. Use this window to install the application and other related requirements, including the MATLAB Runtime.
 
@@ -97,7 +100,7 @@ _Figure 3. watershed_cell_gui initial appearance_
 
 ### Select Images
 
-In the `Select Images` panel, click the `Add` button to open a dialog box and select an image you want to process. To follow this example, use the included `test.tiff` file. Click `Load Selected` to import and display the selected image. The `Segmentation` panel shows a grayscale version of the image used for finding regions, whle the `Classification` panel shows a full color version used for segmentation. At this point, the GUI should look like Figure 4. You can use the toolbar buttons to zoom/pan and inspect the images.
+In the `Select Images` panel, click the `Add` button to open a dialog box and select an image you want to process. To follow this example, use the included `test.tiff` file. Click `Load Selected` to import and display the selected image. The `Segmentation` panel shows a grayscale version of the image used for finding regions, while the `Classification` panel shows a full color version used for segmentation. At this point, the GUI should look like Figure 4. You can use the toolbar buttons to zoom/pan and inspect the images.
 
 <img src="private/quickstart_fig4.png" width="600px"/>
 
@@ -145,7 +148,7 @@ To classify regions, the GUI applies a function, `f(R,G,B)` to each region, wher
 
 Enter the function definition and threshold (if manual) in the text boxes. The function may be a custom function and/or may call other Matlab and user-defined functions. Then, click `Run Classification` to run the classification process and display the results.
 
-Onces the classification is complete, the regions with f values above and below the threshold will be outlined in magenta and cyan, respectively. Also, the GUI shows a histogram of the f values from all the segmented regions. You can use the toolbar buttons to zoom/pan and inspect the plots. At this point, the GUI should look like Figure 6. You can use the toolbar buttons to zoom/pan and inspect the plots.
+Once the classification is complete, the regions with f values above and below the threshold will be outlined in magenta and cyan, respectively. Also, the GUI shows a histogram of the f values from all the segmented regions. You can use the toolbar buttons to zoom/pan and inspect the plots. At this point, the GUI should look like Figure 6. You can use the toolbar buttons to zoom/pan and inspect the plots.
 
 <img src="private/quickstart_fig6.png" width="600px"/>
 
@@ -163,12 +166,44 @@ You can also use the GUI to automatically process multiple images with the same 
 
 As the bath process continues, the GUI plots will dynamically update to show the current processing results. While the batch process is running click the `Cancel` button to stop the analysis. This will finish completing the current calculation step and then cancel all remaining steps. Any unsaved data will be lost.
 
+### Note
+
+The “meat” of the segmentation algorithm is encoded in the private function `private\find_regions.m`. If you would like to alter the processing algorithm or use it externally or programmatically, start there. Similarly, the "meat" of the classification process is contained in `private\apply_function.m` and `private\apply_threshold.m`.
+
+
 ## More Information
 
-### Algorithm Details
+### Authors
 
-The “meat” of the segmetnation algorithm is encoded in the private function `private\find_regions.m`. If you would like to alter the processing algorithm or use it externally or programmatically, start there. Similarly, the "meat" of the classification process is contained in `private\apply_function.m` and `private\apply_threshold.m`.
+This algorithm and GUI was written by Lena Bartell during the completion of her PhD thesis in Prof. Itai Cohen's group at Cornell University. Lena was generously supported by and NSF GRFP DGE-1144153 and NIH 1F31-AR069977. 
 
-### Feedback
+We welcome feedback. Please email Lena with any questions, comments, suggestions, or bugs. 
 
-I welcome feedback. If you run across any errors or issues, please email me the details and I will try to help. Similarly, please let me know if you find this GUI useful. Good news is always appreciated! :)
+#### Programmer
+
+Lena R. Bartell  
+PhD Candidate  
+Applied Physics  
+Cornell University  
+lrb89@cornell.edu  
+[GitHub profile](https://github.com/lbartell)
+
+#### Principal Investigator
+
+Itai Cohen  
+Associate Professor  
+Department of Physics  
+Cornell University  
+ic67@cornell.edu  
+[Cohen Group website](http://cohengroup.lassp.cornell.edu/)
+
+### Copyright
+Copyright &copy; 2016 - 2017 by Cornell University. All Rights Reserved.
+ 
+Permission to use the watershed_cells_gui (the “Work”) and its associated copyrights solely for educational, research and non-profit purposes, without fee is hereby granted, provided that the user agrees as follows:
+ 
+Those desiring to incorporate the Work into commercial products or use Work and its associated copyrights for commercial purposes should contact the Center for Technology Licensing at Cornell University at 395 Pine Tree Road, Suite 310, Ithaca, NY 14850; email: ctl-connect@cornell.edu; Tel: 607-254-4698; FAX: 607-254-5454 for a commercial license.
+ 
+IN NO EVENT SHALL CORNELL UNIVERSITY (“CORNELL”) BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES, INCLUDING LOST PROFITS, ARISING OUT OF THE USE OF THE WORK AND ITS ASSOCIATED COPYRIGHTS, EVEN IF CORNELL MAY HAVE BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ 
+THE WORK PROVIDED HEREIN IS ON AN "AS IS" BASIS, AND CORNELL HAS NO OBLIGATION TO PROVIDE ANY MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.  CORNELL MAKES NO REPRESENTATIONS AND EXTENDS NO WARRANTIES OF ANY KIND, EITHER IMPLIED OR EXPRESS, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE, OR THAT THE USE OF WORK AND ITS ASSOCIATED COPYRIGHTS WILL NOT INFRINGE ANY PATENT, TRADEMARK OR OTHER RIGHTS.
