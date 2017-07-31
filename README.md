@@ -200,7 +200,7 @@ ic67@cornell.edu
 ### Copyright
 Copyright &copy; 2016 - 2017 by Cornell University. All Rights Reserved.
  
-Permission to use the watershed_cells_gui (the “Work”) and its associated copyrights solely for educational, research and non-profit purposes, without fee is hereby granted, provided that the user agrees as follows:
+Permission to use the `watershed_cells_gui` (the “Work”) and its associated copyrights solely for educational, research and non-profit purposes, without fee is hereby granted, provided that the user agrees as follows:
  
 Those desiring to incorporate the Work into commercial products or use Work and its associated copyrights for commercial purposes should contact the Center for Technology Licensing at Cornell University at 395 Pine Tree Road, Suite 310, Ithaca, NY 14850; email: ctl-connect@cornell.edu; Tel: 607-254-4698; FAX: 607-254-5454 for a commercial license.
  
